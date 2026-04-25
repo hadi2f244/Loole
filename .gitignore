@@ -1,24 +1,26 @@
-*.json
-bin/
-*.tmp
-*~
-.DS_Store
-*.zip
-*.exe
-*.json
-*.log
-*.token
-implementation_plan.md
-CLAUDE.md
+# Scripts
+macos-app/scripts/
+scripts/
 
-# macOS app build artifacts
+# Data & Tokens
+*.token
+*.log
+credentials.json
+server_config.json
+client_config.json
+loole.log
+
+# Build Artifacts
 macos-app/.build/
 macos-app/dist/
 macos-app/bundle/
-macos-app/Sources/Loole/Resources/Loole.icns
-macos-app/Sources/Loole/Resources/Loole.png
-macos-app/Sources/Loole/Resources/.gitkeep
+bin/
+*.zip
+*.icns
+*.png
 
-temp
-macos-app/logo/loole.png
-macos-app/scripts
+# System
+.DS_Store
+temp/
+implementation_plan.md
+CLAUDE.md

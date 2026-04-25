@@ -24,15 +24,8 @@ struct ContentView: View {
     }
 
     var body: some View {
-        Group {
-            if app.isWizardComplete {
-                mainUI
-            } else {
-                WizardView()
-                    .frame(minWidth: 640, minHeight: 520)
-            }
-        }
-        .background(WindowAccessor())
+        mainUI
+            .background(WindowAccessor())
     }
 
     private var mainUI: some View {
@@ -42,13 +35,21 @@ struct ContentView: View {
         } detail: {
             ZStack {
                 AppBackground()
-                switch tab {
-                case .dashboard: DashboardView()
-                case .logs:      LogsView()
-                case .server:    ServerWizardView()
+                
+                if app.isWizardComplete {
+                    Group {
+                        switch tab {
+                        case .dashboard: DashboardView()
+                        case .logs:      LogsView()
+                        case .server:    ServerWizardView(onComplete: nil, onBack: nil)
+                        }
+                    }
+                    .navigationTitle(tab.title)
+                } else {
+                    WizardView()
+                        .navigationTitle("Setup Loole")
                 }
             }
-            .navigationTitle(tab.title)
         }
     }
 

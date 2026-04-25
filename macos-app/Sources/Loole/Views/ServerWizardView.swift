@@ -3,6 +3,7 @@ import SwiftUI
 /// Step 3 of the wizard: package the server binary and give the user deploy commands.
 struct ServerWizardView: View {
     var onComplete: (() -> Void)?
+    var onBack: (() -> Void)?
 
     @EnvironmentObject var app: AppState
     @State private var detectedArch: String?
@@ -14,31 +15,36 @@ struct ServerWizardView: View {
     private let store = ConfigStore()
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 20) {
-                stepHeader
+        VStack {
+            Card {
+                VStack(alignment: .leading, spacing: 24) {
+                    stepHeader
 
-                if zipURL == nil {
-                    archDetectionSection
-                } else {
-                    deploySection
+                    if zipURL == nil {
+                        archDetectionSection
+                    } else {
+                        deploySection
+                    }
                 }
             }
+            .frame(maxWidth: 560)
+            .padding(.horizontal, 24)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Header
 
     private var stepHeader: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color.accentColor.opacity(0.2)).frame(width: 28, height: 28)
-                Text("3").font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Color.accentColor)
+                Circle().fill(Color.accentColor.opacity(0.15)).frame(width: 32, height: 32)
+                Text("3").font(.system(size: 14, weight: .bold, design: .rounded)).foregroundStyle(Color.accentColor)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("Set up your server").font(.system(size: 16, weight: .semibold))
-                Text("The server runs on your Linux VPS and connects to the same Drive folder.")
-                    .font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("Deploy Loole Server").font(.system(size: 18, weight: .bold))
+                Text("The server runs on your VPS and connects to your Drive folder.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
             }
         }
     }
@@ -46,61 +52,48 @@ struct ServerWizardView: View {
     // MARK: - Arch detection
 
     private var archDetectionSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("What type of CPU does your server have?")
-                .font(.system(size: 13, weight: .semibold))
+        VStack(alignment: .leading, spacing: 20) {
+            Text("1. Confirm VPS CPU Architecture")
+                .font(.system(size: 13, weight: .bold))
 
-            Text("SSH into your server and run **`uname -m`** to check, then pick below:")
+            Text("SSH into your server and run **`uname -m`**, then pick the result below:")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
-
-            CodeBlock(label: "run on server", code: "uname -m")
 
             // Arch selection buttons
             HStack(spacing: 12) {
-                archButton(
-                    arch: "amd64",
-                    label: "x86_64",
-                    subtitle: "Intel / AMD\n(most common)"
-                )
-                archButton(
-                    arch: "arm64",
-                    label: "aarch64",
-                    subtitle: "ARM64\nOracle Cloud / Ampere"
-                )
+                archButton(arch: "amd64", label: "x86_64", subtitle: "Most common\n(Intel/AMD)")
+                archButton(arch: "arm64", label: "aarch64", subtitle: "ARM64\n(Oracle/Ampere)")
             }
-
-            if let arch = detectedArch {
-                Label("Selected: **\(arch == "amd64" ? "x86_64 (Intel/AMD)" : "aarch64 (ARM64)")**",
-                      systemImage: "checkmark.circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.green)
-            }
-
-            Divider().opacity(0.2)
 
             // Optional server IP
-            HStack(spacing: 10) {
-                Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
-                Text("Server IP:")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-                TextField("e.g. 192.168.1.10  (optional — for command preview)", text: $serverIP)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 11))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("2. Target Server IP (Optional)")
+                    .font(.system(size: 13, weight: .bold))
+                HStack(spacing: 10) {
+                    Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
+                    TextField("e.g. 85.34.12.99", text: $serverIP)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, design: .monospaced))
+                }
             }
 
             if let err = buildError {
                 Label(err, systemImage: "xmark.circle.fill")
                     .font(.system(size: 11)).foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
+                if let back = onBack {
+                    Button("← Go Back") { back() }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                }
                 Spacer()
                 if isBuilding {
                     ProgressView().controlSize(.small)
-                    Text("Packaging…").font(.system(size: 12)).foregroundStyle(.secondary)
+                    Text("Building bundle…").font(.system(size: 12)).foregroundStyle(.secondary)
                 } else {
-                    Button("Build Server Package") {
+                    Button("Prepare Server Zip") {
                         buildPackage()
                     }
                     .buttonStyle(.borderedProminent)
@@ -115,26 +108,26 @@ struct ServerWizardView: View {
         Button {
             withAnimation(.easeInOut(duration: 0.15)) { detectedArch = arch }
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 Text(label)
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .font(.system(size: 15, weight: .bold, design: .monospaced))
                 Text(subtitle)
                     .font(.system(size: 10))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
+            .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(detectedArch == arch
-                          ? Color.accentColor.opacity(0.18)
-                          : Color.white.opacity(0.05))
+                          ? Color.accentColor.opacity(0.12)
+                          : Color.white.opacity(0.04))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(detectedArch == arch
                                     ? Color.accentColor
-                                    : Color.white.opacity(0.12), lineWidth: 1.5)
+                                    : Color.white.opacity(0.1), lineWidth: 1.5)
                     )
             )
         }
@@ -145,40 +138,30 @@ struct ServerWizardView: View {
     // MARK: - Deploy section
 
     private var deploySection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("Package ready!", systemImage: "checkmark.circle.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.green)
-
-            Text("**loole-server.zip** has been saved to your Desktop. It contains the server binary, your credentials, and config.")
-                .font(.system(size: 12)).foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Button {
-                if let url = zipURL { ServerPackager.revealInFinder(url) }
-            } label: {
-                Label("Show in Finder", systemImage: "folder")
-                    .font(.system(size: 12, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Label("Server package is ready!", systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.green)
+                Spacer()
+                Button("Show in Finder") {
+                    if let url = zipURL { ServerPackager.revealInFinder(url) }
+                }
+                .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Color.accentColor)
             }
-            .buttonStyle(.bordered)
 
-            Divider().opacity(0.2)
-
-            Text("Copy each command in order:")
-                .font(.system(size: 12)).foregroundStyle(.secondary)
+            Text("The zip file contains everything your server needs. Run these commands in your terminal:")
+                .font(.system(size: 11)).foregroundStyle(.secondary)
 
             if let url = zipURL {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(ServerPackager.deploymentCommands(zipURL: url, serverIP: serverIP), id: \.label) { step in
                         CodeBlock(label: step.label, code: step.code)
                     }
                 }
             }
 
-            Text("After the server starts, come back here and click **Done**.")
-                .font(.system(size: 11)).foregroundStyle(.secondary)
+            Divider().opacity(0.15)
 
             HStack {
                 Button("← Re-package") {
@@ -189,7 +172,7 @@ struct ServerWizardView: View {
 
                 Spacer()
 
-                Button("Done — Go to Dashboard") {
+                Button("Finish Setup") {
                     onComplete?()
                 }
                 .buttonStyle(.borderedProminent)

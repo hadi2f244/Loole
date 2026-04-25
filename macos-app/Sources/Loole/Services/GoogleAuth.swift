@@ -136,11 +136,6 @@ final class GoogleAuth: ObservableObject {
     }
 
     private func captureCode(port: UInt16) async throws -> String {
-        // Browsers commonly open a follow-up connection for /favicon.ico right
-        // after the redirect; without guarding, the second receive would
-        // resume the same continuation a second time and crash.
-        // withTaskCancellationHandler lets reset() / task cancellation
-        // unblock the continuation immediately.
         let resumer = ContinuationResumer<String>()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { [weak self] cont in
@@ -159,15 +154,13 @@ final class GoogleAuth: ObservableObject {
                     conn.receive(minimumIncompleteLength: 1, maximumLength: 8192) { data, _, _, _ in
                         guard let data, let raw = String(data: data, encoding: .utf8),
                               let code = Self.parseCode(from: raw) else {
-                            // Ignore non-OAuth requests (e.g. favicon) — keep the
-                            // listener alive in case the real redirect hasn't arrived yet.
                             conn.cancel()
                             return
                         }
                         let ok = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: close\r\n\r\n" +
-                            "<html><body style='font-family:system-ui;padding:40px'>" +
-                            "<h2>✓ Loole: Authorization complete</h2>" +
-                            "<p>You can close this tab and return to the app.</p></body></html>"
+                            "<html><body style='font-family:-apple-system,sans-serif;padding:40px;background:#1a1a1a;color:white;text-align:center;'>" +
+                            "<h2>✅ Loole: Connected</h2>" +
+                            "<p>Authorization captured. You can close this tab.</p></body></html>"
                         conn.send(content: ok.data(using: .utf8), completion: .idempotent)
                         listener.cancel()
                         resumer.succeed(code)

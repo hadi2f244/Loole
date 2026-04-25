@@ -102,17 +102,31 @@ enum ServerPackager {
 
     /// Returns the deployment steps the user needs to run, each as a separate (label, command) pair.
     static func deploymentCommands(zipURL: URL, serverIP: String) -> [(label: String, code: String)] {
-        let file = zipURL.lastPathComponent
-        let target = serverIP.isEmpty ? "root@YOUR_SERVER_IP" : "root@\(serverIP)"
+        let localPath = zipURL.path
+        let target = serverIP.isEmpty ? "YOUR_SERVER_IP" : serverIP
+        let user = "root"
+        
         return [
             (
-                label: "1. upload to server  (run in your local terminal)",
-                code: "scp \(file) \(target):/root/"
+                label: "1. Upload to Server",
+                code: "scp \"\(localPath)\" \(user)@\(target):/root/"
             ),
             (
-                label: "2. install & run on server",
-                code: "ssh \(target) 'apt-get install -y unzip && cd /root && unzip -o \(file) && bash run.sh'"
+                label: "2. Install Unzip & Setup",
+                code: "ssh \(user)@\(target) 'apt-get update && apt-get install -y unzip && cd /root && unzip -o loole-server.zip && chmod +x server'"
             ),
+            (
+                label: "3. Run (Background)",
+                code: "ssh \(user)@\(target) 'cd /root && nohup ./server -c server_config.json -gc credentials.json > loole.log 2>&1 &'"
+            ),
+            (
+                label: "4. Show Logs",
+                code: "ssh \(user)@\(target) 'tail -f /root/loole.log'"
+            ),
+            (
+                label: "5. Terminate",
+                code: "ssh \(user)@\(target) 'pkill -f server'"
+            )
         ]
     }
 }

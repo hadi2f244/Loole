@@ -20,15 +20,8 @@ struct WizardView: View {
                     StepIndicator(current: step, total: 3)
                         .padding(.horizontal, 4)
 
-                    Group {
-                        switch step {
-                        case 0: credentialsStep
-                        case 1: authorizeStep
-                        case 2: ServerWizardView(onComplete: {
-                            app.completeWizard()
-                        })
-                        default: EmptyView()
-                        }
+                    VStack(spacing: 0) {
+                        contentForStep(step)
                     }
                     .transition(.asymmetric(
                         insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -43,18 +36,38 @@ struct WizardView: View {
         }
     }
 
+    @ViewBuilder
+    private func contentForStep(_ s: Int) -> some View {
+        switch s {
+        case 0: credentialsStep
+        case 1: authorizeStep
+        case 2: ServerWizardView(onComplete: {
+            app.completeWizard()
+        }, onBack: {
+            withAnimation { step = 1 }
+        })
+        default: EmptyView()
+        }
+    }
+
     // MARK: - Header
 
     private var header: some View {
-        VStack(spacing: 6) {
-            Text("Welcome to Loole")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+        VStack(spacing: 8) {
+            HStack {
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Color.accentColor)
+                Text("Setup Loole")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+            }
             Text("Let's get your private tunnel running in three steps.")
                 .font(.system(size: 13))
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Step 0: Credentials

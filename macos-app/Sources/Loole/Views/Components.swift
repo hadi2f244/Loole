@@ -10,13 +10,32 @@ struct Card<Content: View>: View {
         content
             .padding(20)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(.white.opacity(0.05))
+                VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(.white.opacity(0.1), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(.white.opacity(0.12), lineWidth: 0.5)
                     )
             )
+            .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+    }
+}
+
+struct VisualEffectView: NSViewRepresentable {
+    let material: NSVisualEffectView.Material
+    let blendingMode: NSVisualEffectView.BlendingMode
+
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = material
+        view.blendingMode = blendingMode
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
+        nsView.material = material
+        nsView.blendingMode = blendingMode
     }
 }
 
@@ -122,13 +141,22 @@ struct StepIndicator: View {
 
 struct AppBackground: View {
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(.sRGB, red: 0.05, green: 0.06, blue: 0.11, opacity: 1),
-                Color(.sRGB, red: 0.08, green: 0.10, blue: 0.16, opacity: 1)
-            ],
-            startPoint: .topLeading, endPoint: .bottomTrailing
-        )
+        ZStack {
+            Color(.sRGB, red: 0.04, green: 0.05, blue: 0.08, opacity: 1)
+            
+            // Subtle mesh-like glow
+            Circle()
+                .fill(Color.accentColor.opacity(0.12))
+                .frame(width: 400, height: 400)
+                .blur(radius: 120)
+                .offset(x: -200, y: -200)
+            
+            Circle()
+                .fill(Color.purple.opacity(0.1))
+                .frame(width: 350, height: 350)
+                .blur(radius: 120)
+                .offset(x: 250, y: 200)
+        }
         .ignoresSafeArea()
     }
 }
