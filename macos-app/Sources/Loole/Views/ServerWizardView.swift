@@ -8,6 +8,7 @@ struct ServerWizardView: View {
     @EnvironmentObject var app: AppState
     @State private var detectedArch: String?
     @State private var serverIP: String = ""
+    @State private var includeSSH = false
     @State private var zipURL: URL?
     @State private var isBuilding = false
     @State private var buildError: String?
@@ -63,18 +64,6 @@ struct ServerWizardView: View {
             HStack(spacing: 12) {
                 archButton(arch: "amd64", label: "x86_64", subtitle: "Most common\n(Intel/AMD)")
                 archButton(arch: "arm64", label: "aarch64", subtitle: "ARM64\n(Oracle/Ampere)")
-            }
-
-            // Optional server IP
-            VStack(alignment: .leading, spacing: 8) {
-                Text("2. Target Server IP (Optional)")
-                    .font(.system(size: 13, weight: .bold))
-                HStack(spacing: 10) {
-                    Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
-                    TextField("e.g. 85.34.12.99", text: $serverIP)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(size: 12, design: .monospaced))
-                }
             }
 
             if let err = buildError {
@@ -150,12 +139,32 @@ struct ServerWizardView: View {
                 .buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(Color.accentColor)
             }
 
-            Text("The zip file contains everything your server needs. Run these commands in your terminal:")
+            Text("The zip file contains everything your server needs.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Include SSH login in commands", isOn: $includeSSH)
+                    .toggleStyle(.switch)
+                    .font(.system(size: 12, weight: .medium))
+
+                if includeSSH {
+                    HStack(spacing: 10) {
+                        Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
+                        Text("Server IP:").font(.system(size: 12)).foregroundStyle(.secondary)
+                        TextField("e.g. 85.34.12.99", text: $serverIP)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(size: 12, design: .monospaced))
+                    }
+                    .padding(.bottom, 4)
+                }
+            }
+            .padding(12)
+            .background(Color.white.opacity(0.04))
+            .cornerRadius(8)
 
             if let url = zipURL {
                 VStack(spacing: 12) {
-                    ForEach(ServerPackager.deploymentCommands(zipURL: url, serverIP: serverIP), id: \.label) { step in
+                    ForEach(ServerPackager.deploymentCommands(zipURL: url, serverIP: serverIP, includeSSH: includeSSH), id: \.label) { step in
                         CodeBlock(label: step.label, code: step.code)
                     }
                 }

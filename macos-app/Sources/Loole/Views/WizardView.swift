@@ -53,11 +53,12 @@ struct WizardView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Image(systemName: "dot.radiowaves.left.and.right")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(Color.accentColor)
+        VStack(spacing: 12) {
+            HStack(spacing: 16) {
+                Image("loole")
+                    .resizable()
+                    .frame(width: 44, height: 44)
+                    .cornerRadius(10)
                 Text("Setup Loole")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)

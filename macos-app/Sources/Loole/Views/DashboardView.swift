@@ -8,167 +8,173 @@ struct DashboardView: View {
         ScrollView {
             VStack(spacing: 24) {
                 // Header with Logo
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(LinearGradient(colors: [.accentColor, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                            .frame(width: 48, height: 48)
-                        Image(systemName: "dot.radiowaves.left.and.right")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                    }
+                HStack(spacing: 16) {
+                    Image("loole")
+                        .resizable()
+                        .frame(width: 52, height: 52)
+                        .cornerRadius(12)
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Loole")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
                         Text("Secure Data Flow")
-                            .font(.system(size: 12))
+                            .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
+                    
+                    if app.status.isRunning {
+                        Button {
+                            Task { await app.testConnection() }
+                        } label: {
+                            if app.isTestingLatency {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Refresh", systemImage: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(app.isTestingLatency)
+                        .foregroundStyle(Color.accentColor)
+                    }
                 }
-                .padding(.bottom, 8)
+                .padding(.top, 8)
 
-                connectionCard
-                proxyCard
+                // Status Card
+                statusCard
+
+                // Diagnostics Row (when running)
+                if app.status.isRunning {
+                    HStack(spacing: 16) {
+                        diagnosticItem(label: "SERVER LOCATION", value: app.serverLocation ?? (app.isTestingLatency ? "Checking..." : "—"), icon: "mappin.and.ellipse")
+                        diagnosticItem(label: "LATENCY", value: latencyDisplay, icon: "timer")
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                // Connect Button
+                connectButton
+                
+                // Advanced Configuration
                 statsCard
+                
+                Spacer(minLength: 40)
             }
             .padding(32)
         }
+        .animation(.spring(), value: app.status)
+        .animation(.spring(), value: app.serverLocation)
     }
 
-    // MARK: - Connection card
-
-    private var connectionCard: some View {
-        Card {
-            VStack(spacing: 24) {
-                // Status indicator
-                HStack(spacing: 12) {
-                    StatusDot(
-                        color: statusColor,
-                        animated: app.status.isRunning
-                    )
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(app.status.label)
-                            .font(.system(size: 16, weight: .bold))
-                        if let started = app.startedAt, app.status.isRunning {
-                            Text("Active for " + started.formatted(date: .omitted, time: .shortened))
-                                .font(.system(size: 11))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                }
-
-                // Connect Button (Redesigned & Properly Sized)
-                Button {
-                    guard !isToggling else { return }
-                    isToggling = true
-                    Task {
-                        if app.status.isRunning { await app.stop() }
-                        else { await app.start() }
-                        isToggling = false
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        if app.status.isTransitioning || isToggling {
-                            ProgressView().controlSize(.small).colorScheme(.dark)
-                        } else {
-                            Image(systemName: app.status.isRunning ? "power" : "power")
-                                .font(.system(size: 18, weight: .bold))
-                        }
-                        Text(app.status.isRunning ? "STOP VPN" : "START VPN")
-                            .font(.system(size: 13, weight: .heavy))
-                    }
-                    .frame(width: 180)
-                    .padding(.vertical, 14)
-                    .background(
-                        Capsule()
-                            .fill(app.status.isRunning ? 
-                                 LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                 LinearGradient(colors: [.accentColor, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    )
-                    .foregroundColor(.white)
-                    .shadow(color: (app.status.isRunning ? Color.red : Color.accentColor).opacity(0.3), radius: 10, x: 0, y: 4)
-                }
-                .buttonStyle(.plain)
-                .disabled(app.status.isTransitioning || isToggling)
-                .scaleEffect(isToggling ? 0.96 : 1.0)
-                .animation(.spring(), value: isToggling)
-
-                // SOCKS5 address info
-                if app.status.isRunning {
-                    HStack {
-                        Image(systemName: "lock.shield.fill").font(.system(size: 11)).foregroundStyle(.green)
-                        Text("Encrypted Tunnel: **\(app.settings.listenAddr)**")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        CopyButton(text: app.settings.listenAddr)
-                    }
-                    .padding(.top, 4)
-                }
-            }
+    private var latencyDisplay: String {
+        if app.isTestingLatency && app.latency == nil { return "Testing..." }
+        guard let l = app.latency else { return "—" }
+        if l > 1.0 {
+            return String(format: "%.1f s", l)
+        } else {
+            return String(format: "%.0f ms", l * 1000)
         }
     }
 
-    // MARK: - Proxy card
-
-    private var proxyCard: some View {
+    private func diagnosticItem(label: String, value: String, icon: String) -> some View {
         Card {
-            HStack(spacing: 12) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 18))
-                    .foregroundStyle(app.settings.useSystemProxy ? Color.accentColor : Color.secondary)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Route all Mac traffic")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Sets system-wide SOCKS5 proxy so every app uses the tunnel.")
-                        .font(.system(size: 11))
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Color.accentColor)
+                    Text(label)
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.secondary)
                 }
+                Text(value)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var statusCard: some View {
+        Card {
+            HStack(spacing: 20) {
+                StatusDot(color: app.status.isRunning ? .green : .orange, animated: app.status.isRunning)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(app.status.label)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                    
+                    if let start = app.startedAt {
+                        Text("Active since \(start.formatted(date: .omitted, time: .shortened))")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                    } else if case .error(let msg) = app.status {
+                         Text(msg)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.red.opacity(0.8))
+                    }
+                }
                 Spacer()
-                Toggle("", isOn: Binding(
+                
+                Toggle("System Proxy", isOn: Binding(
                     get: { app.settings.useSystemProxy },
-                    set: { on in Task { await app.setSystemProxy(on) } }
+                    set: { val in Task { await app.setSystemProxy(val) } }
                 ))
                 .toggleStyle(.switch)
-                .labelsHidden()
+                .font(.system(size: 12, weight: .medium))
             }
         }
     }
 
-    // MARK: - Stats card
+    private var connectButton: some View {
+        Button {
+            Task {
+                if app.status.isRunning { await app.stop() }
+                else { await app.start() }
+            }
+        } label: {
+            ZStack {
+                if app.status.isTransitioning {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text(app.status.isRunning ? "Disconnect" : "Connect")
+                        .font(.system(size: 15, weight: .bold))
+                }
+            }
+            .frame(width: 200, height: 48)
+            .background(
+                Capsule()
+                    .fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor)
+            )
+            .foregroundColor(.white)
+        }
+        .buttonStyle(.plain)
+        .disabled(app.status.isTransitioning)
+    }
 
     private var statsCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Configuration")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                statRow(label: "Listen address", value: app.settings.listenAddr)
-                statRow(label: "Poll rate", value: "\(app.settings.refreshRateMs) ms")
-                statRow(label: "Flush rate", value: "\(app.settings.flushRateMs) ms")
-                statRow(label: "Drive folder", value: app.settings.folderID.isEmpty ? "—" : String(app.settings.folderID.prefix(20)) + "…")
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ADVANCED INFO")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
+            
+            Card {
+                VStack(spacing: 12) {
+                    statRow(label: "SOCKS Address", value: app.settings.listenAddr)
+                    statRow(label: "Tunnel Mode", value: "Google Drive (loole-server)")
+                    statRow(label: "Polling Rate", value: "\(app.settings.refreshRateMs)ms")
+                }
             }
         }
+        .padding(.top, 12)
     }
 
     private func statRow(label: String, value: String) -> some View {
         HStack {
             Text(label).font(.system(size: 11)).foregroundStyle(.secondary)
             Spacer()
-            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(.primary)
-        }
-    }
-
-    private var statusColor: Color {
-        switch app.status {
-        case .running:  return .green
-        case .starting, .stopping: return .yellow
-        case .error:    return .orange
-        case .stopped:  return Color.white.opacity(0.25)
+            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(.white)
         }
     }
 }

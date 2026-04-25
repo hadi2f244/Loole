@@ -101,10 +101,35 @@ enum ServerPackager {
     }
 
     /// Returns the deployment steps the user needs to run, each as a separate (label, command) pair.
-    static func deploymentCommands(zipURL: URL, serverIP: String) -> [(label: String, code: String)] {
+    static func deploymentCommands(zipURL: URL, serverIP: String, includeSSH: Bool) -> [(label: String, code: String)] {
         let localPath = zipURL.path
         let target = serverIP.isEmpty ? "YOUR_SERVER_IP" : serverIP
         let user = "root"
+        
+        if !includeSSH {
+            return [
+                (
+                    label: "1. Upload to Server",
+                    code: "scp \"\(localPath)\" \(user)@\(target):/root/"
+                ),
+                (
+                    label: "2. Install Unzip & Setup",
+                    code: "apt-get update && apt-get install -y unzip && cd /root && unzip -o loole-server.zip && chmod +x server"
+                ),
+                (
+                    label: "3. Run (Background)",
+                    code: "cd /root && nohup ./server -c server_config.json -gc credentials.json > loole.log 2>&1 &"
+                ),
+                (
+                    label: "4. Show Logs",
+                    code: "tail -f /root/loole.log"
+                ),
+                (
+                    label: "5. Terminate",
+                    code: "pkill -f server"
+                )
+            ]
+        }
         
         return [
             (

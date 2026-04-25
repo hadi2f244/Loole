@@ -46,6 +46,9 @@ final class AppState: ObservableObject {
     @Published var startedAt: Date?
     @Published var wizardStep: WizardStep = .credentials
     @Published var isWizardComplete: Bool = false
+    @Published var serverLocation: String?
+    @Published var latency: Double?
+    @Published var isTestingLatency = false
 
     private let store = ConfigStore()
     private let core  = CoreManager()
@@ -92,6 +95,45 @@ final class AppState: ObservableObject {
         }
         await core.stop()
         startedAt = nil
+        serverLocation = nil
+        latency = nil
+    }
+
+    // MARK: - Diagnostics
+
+    func testConnection() async {
+        isTestingLatency = true
+        let start = Date()
+        
+        // 1. Get location (implicitly tests connectivity)
+        await refreshLocation()
+        
+        // 2. Simple latency check (measure time to hit a reliable endpoint)
+        if let url = URL(string: "https://www.google.com/generate_204") {
+            do {
+                let session = URLSession(configuration: .ephemeral)
+                _ = try await session.data(from: url)
+                latency = Date().timeIntervalSince(start)
+            } catch {
+                latency = nil
+            }
+        }
+        isTestingLatency = false
+    }
+
+    private func refreshLocation() async {
+        guard let url = URL(string: "https://ipapi.co/json/") else { return }
+        do {
+            let session = URLSession(configuration: .ephemeral)
+            let (data, _) = try await session.data(from: url)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let city = json["city"] as? String,
+               let country = json["country_name"] as? String {
+                serverLocation = "\(city), \(country)"
+            }
+        } catch {
+            serverLocation = "Unknown"
+        }
     }
 
     // MARK: - System proxy

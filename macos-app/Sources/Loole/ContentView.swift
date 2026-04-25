@@ -5,20 +5,22 @@ struct ContentView: View {
     @State private var tab: Tab = .dashboard
 
     enum Tab: String, CaseIterable, Identifiable {
-        case dashboard, logs, server
+        case dashboard, logs, server, setup
         var id: String { rawValue }
         var title: String {
             switch self {
-            case .dashboard: return "Dashboard"
-            case .logs:      return "Logs"
-            case .server:    return "Server Setup"
+            case .dashboard: return "Status"
+            case .logs:      return "Output"
+            case .server:    return "Deploy Server"
+            case .setup:     return "Setup"
             }
         }
         var symbol: String {
             switch self {
             case .dashboard: return "dot.radiowaves.left.and.right"
-            case .logs:      return "text.alignleft"
+            case .logs:      return "terminal"
             case .server:    return "server.rack"
+            case .setup:     return "gearshape.2"
             }
         }
     }
@@ -26,6 +28,7 @@ struct ContentView: View {
     var body: some View {
         mainUI
             .background(WindowAccessor())
+            .environmentObject(app)
     }
 
     private var mainUI: some View {
@@ -42,6 +45,7 @@ struct ContentView: View {
                         case .dashboard: DashboardView()
                         case .logs:      LogsView()
                         case .server:    ServerWizardView(onComplete: nil, onBack: nil)
+                        case .setup:     WizardView()
                         }
                     }
                     .navigationTitle(tab.title)
