@@ -8,3 +8,17 @@ bin/
 *.json
 *.log
 *.token
+implementation_plan.md
+CLAUDE.md
+
+# macOS app build artifacts
+macos-app/.build/
+macos-app/dist/
+macos-app/bundle/
+macos-app/Sources/Loole/Resources/Loole.icns
+macos-app/Sources/Loole/Resources/Loole.png
+macos-app/Sources/Loole/Resources/.gitkeep
+
+temp
+macos-app/logo/loole.png
+macos-app/scripts
