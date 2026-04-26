@@ -9,13 +9,16 @@ final class GoogleAuth: ObservableObject {
     // MARK: - Types
 
     struct OAuthCredentials: Decodable {
-        struct Installed: Decodable {
+        struct Details: Decodable {
             let client_id: String
             let client_secret: String
             let auth_uri: String
             let token_uri: String
         }
-        let installed: Installed
+        let installed: Details?
+        let web: Details?
+        
+        var details: Details? { installed ?? web }
     }
 
     struct TokenCache: Codable {
@@ -69,10 +72,12 @@ final class GoogleAuth: ObservableObject {
 
         do {
             let creds = try loadCredentials(at: credentialsURL)
+            guard let details = creds.details else { throw AuthError.missingCredentials }
+
             let port = UInt16.random(in: 49152...65000)
             let redirectURI = "http://127.0.0.1:\(port)"
 
-            let authURL = buildAuthURL(creds: creds.installed, redirectURI: redirectURI)
+            let authURL = buildAuthURL(details: details, redirectURI: redirectURI)
             NSWorkspace.shared.open(authURL)
 
             let code = try await captureCode(port: port)
@@ -80,7 +85,7 @@ final class GoogleAuth: ObservableObject {
             await MainActor.run { phase = .exchanging }
 
             let (access, refresh) = try await exchangeCode(
-                code: code, creds: creds.installed, redirectURI: redirectURI
+                code: code, details: details, redirectURI: redirectURI
             )
             accessToken = access
 
@@ -122,10 +127,10 @@ final class GoogleAuth: ObservableObject {
         }
     }
 
-    private func buildAuthURL(creds: OAuthCredentials.Installed, redirectURI: String) -> URL {
-        var c = URLComponents(string: creds.auth_uri)!
+    private func buildAuthURL(details: OAuthCredentials.Details, redirectURI: String) -> URL {
+        var c = URLComponents(string: details.auth_uri)!
         c.queryItems = [
-            URLQueryItem(name: "client_id",     value: creds.client_id),
+            URLQueryItem(name: "client_id",     value: details.client_id),
             URLQueryItem(name: "redirect_uri",  value: redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope",         value: "https://www.googleapis.com/auth/drive.file"),
@@ -182,15 +187,15 @@ final class GoogleAuth: ObservableObject {
             .queryItems?.first(where: { $0.name == "code" })?.value
     }
 
-    private func exchangeCode(code: String, creds: OAuthCredentials.Installed, redirectURI: String) async throws -> (String, String) {
+    private func exchangeCode(code: String, details: OAuthCredentials.Details, redirectURI: String) async throws -> (String, String) {
         var req = URLRequest(url: URL(string: "https://oauth2.googleapis.com/token")!)
         req.httpMethod = "POST"
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         let body = [
             "grant_type=authorization_code",
             "code=\(code)",
-            "client_id=\(creds.client_id)",
-            "client_secret=\(creds.client_secret)",
+            "client_id=\(details.client_id)",
+            "client_secret=\(details.client_secret)",
             "redirect_uri=\(redirectURI.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? redirectURI)"
         ].joined(separator: "&")
         req.httpBody = body.data(using: .utf8)

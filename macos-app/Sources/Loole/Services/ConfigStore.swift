@@ -61,6 +61,15 @@ final class ConfigStore {
         try fm.copyItem(at: sourceURL, to: credentialsURL)
     }
 
+    func deleteCredentials() throws {
+        if fm.fileExists(atPath: credentialsURL.path) {
+            try fm.removeItem(at: credentialsURL)
+        }
+        if fm.fileExists(atPath: tokenURL.path) {
+            try fm.removeItem(at: tokenURL)
+        }
+    }
+
     func credentialsExist() -> Bool {
         fm.fileExists(atPath: credentialsURL.path)
     }

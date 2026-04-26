@@ -8,6 +8,7 @@ struct WizardView: View {
     @State private var step: Int = 0        // 0=credentials, 1=authorize, 2=server
     @State private var credError: String?
     @State private var isDraggingOver = false
+    @State private var credentialsImported = false
 
     private let store = ConfigStore()
 
@@ -33,6 +34,9 @@ struct WizardView: View {
                 .frame(maxWidth: 560)
                 .frame(maxWidth: .infinity)
             }
+        }
+        .onAppear {
+            credentialsImported = store.credentialsExist()
         }
     }
 
@@ -131,11 +135,19 @@ struct WizardView: View {
                         .foregroundStyle(.orange)
                 }
 
-                if store.credentialsExist() {
+                if credentialsImported {
                     HStack {
-                        Label("credentials.json imported", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.green)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Credentials imported", systemImage: "checkmark.circle.fill")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.green)
+                            Button("Remove and try another") {
+                                deleteCredentials()
+                            }
+                            .buttonStyle(.plain)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        }
                         Spacer()
                         Button("Next →") {
                             withAnimation { step = 1 }
@@ -196,20 +208,17 @@ struct WizardView: View {
                 Image(systemName: "square.and.arrow.down")
                     .font(.system(size: 22))
                     .foregroundStyle(isDraggingOver ? Color.accentColor : Color.secondary)
-                Text("Drop credentials.json here")
+                Text("Drop your OAuth JSON here")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
-                Button("or click to browse") {
-                    browseForCredentials()
-                }
-                .font(.system(size: 11))
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
+                Text("or click to browse")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Color.accentColor)
             }
         }
-        .onDrop(of: [UTType.json, UTType.fileURL], isTargeted: $isDraggingOver) { providers in
-            handleDrop(providers: providers)
-        }
+        .contentShape(Rectangle())
+        .onTapGesture { browseForCredentials() }
+        .onDrop(of: [.item], delegate: CredentialsDropDelegate(isDragging: $isDraggingOver, onURL: importCredentials))
     }
 
     private func browseForCredentials() {
@@ -222,46 +231,28 @@ struct WizardView: View {
         }
     }
 
-    private func handleDrop(providers: [NSItemProvider]) -> Bool {
-        for provider in providers {
-            if provider.hasItemConformingToTypeIdentifier(UTType.json.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.json.identifier, options: nil) { item, _ in
-                    DispatchQueue.main.async {
-                        if let url = item as? URL { self.importCredentials(from: url) }
-                        else if let data = item as? Data,
-                                let url = URL(dataRepresentation: data, relativeTo: nil) {
-                            self.importCredentials(from: url)
-                        }
-                    }
-                }
-                return true
-            }
-            if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                    DispatchQueue.main.async {
-                        var url: URL?
-                        if let u = item as? URL { url = u }
-                        else if let data = item as? Data { url = URL(dataRepresentation: data, relativeTo: nil) }
-                        if let u = url { self.importCredentials(from: u) }
-                    }
-                }
-                return true
-            }
-        }
-        return false
+
+    private func deleteCredentials() {
+        try? store.deleteCredentials()
+        credentialsImported = false
+        credError = nil
     }
 
     private func importCredentials(from url: URL) {
+        let _ = url.startAccessingSecurityScopedResource()
+        defer { url.stopAccessingSecurityScopedResource() }
+
         credError = nil
         // Validate it looks like a Google OAuth file
         guard let data = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              json["installed"] != nil else {
+              (json["installed"] != nil || json["web"] != nil) else {
             credError = "This doesn't look like a valid Google OAuth credentials file."
             return
         }
         do {
             try store.importCredentials(from: url)
+            credentialsImported = true
         } catch {
             credError = error.localizedDescription
         }
@@ -413,5 +404,40 @@ struct WizardView: View {
                 }
             }
         }
+    }
+}
+
+struct CredentialsDropDelegate: DropDelegate {
+    @Binding var isDragging: Bool
+    var onURL: (URL) -> Void
+
+    func performDrop(info: DropInfo) -> Bool {
+        isDragging = false
+        let providers = info.itemProviders(for: [.item])
+        guard let provider = providers.first else { return false }
+
+        if provider.canLoadObject(ofClass: URL.self) {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let url = url {
+                    DispatchQueue.main.async {
+                        onURL(url)
+                    }
+                }
+            }
+            return true
+        }
+        return false
+    }
+
+    func dropEntered(info: DropInfo) {
+        isDragging = true
+    }
+
+    func dropExited(info: DropInfo) {
+        isDragging = false
+    }
+
+    func validateDrop(info: DropInfo) -> Bool {
+        return info.hasItemsConforming(to: [.item])
     }
 }

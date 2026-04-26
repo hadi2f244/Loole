@@ -36,29 +36,33 @@ struct ContentView: View {
     }
 
     private var mainUI: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
-        } detail: {
-            ZStack {
-                AppBackground()
-
-                if app.isWizardComplete {
-                    Group {
-                        switch tab {
-                        case .dashboard: DashboardView()
-                        case .logs:      LogsView()
-                        case .server:    ServerWizardView(onComplete: nil, onBack: nil)
-                        case .setup:     WizardView()
-                        case .settings:  SettingsView()
-                        case .about:     AboutView()
+        Group {
+            if app.isWizardComplete {
+                NavigationSplitView {
+                    sidebar
+                        .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 240)
+                } detail: {
+                    ZStack {
+                        AppBackground()
+                        Group {
+                            switch tab {
+                            case .dashboard: DashboardView()
+                            case .logs:      LogsView()
+                            case .server:    ServerWizardView(onComplete: nil, onBack: nil)
+                            case .setup:     WizardView()
+                            case .settings:  SettingsView()
+                            case .about:     AboutView()
+                            }
                         }
+                        .navigationTitle(tab.title)
                     }
-                    .navigationTitle(tab.title)
-                } else {
-                    WizardView()
-                        .navigationTitle("Setup Loole")
                 }
+            } else {
+                ZStack {
+                    AppBackground()
+                    WizardView()
+                }
+                .navigationTitle("Setup Loole")
             }
         }
     }
