@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Darwin
 
 @MainActor
 final class AppState: ObservableObject {
@@ -176,6 +177,32 @@ final class AppState: ObservableObject {
     }
 
     func clearLogs() { logs.removeAll() }
+
+    // MARK: - Network utilities
+
+    static func getLANIPAddress() -> String? {
+        let sock = socket(AF_INET, SOCK_DGRAM, 0)
+        guard sock >= 0 else { return nil }
+        defer { close(sock) }
+        var remote = sockaddr_in()
+        remote.sin_family = sa_family_t(AF_INET)
+        remote.sin_port   = UInt16(80).bigEndian
+        inet_pton(AF_INET, "8.8.8.8", &remote.sin_addr)
+        let len = socklen_t(MemoryLayout<sockaddr_in>.size)
+        let connected = withUnsafePointer(to: &remote) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(sock, $0, len) }
+        }
+        guard connected == 0 else { return nil }
+        var local = sockaddr_in()
+        var localLen = len
+        _ = withUnsafeMutablePointer(to: &local) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(sock, $0, &localLen) }
+        }
+        var buf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+        _ = withUnsafePointer(to: &local.sin_addr) { inet_ntop(AF_INET, $0, &buf, socklen_t(INET_ADDRSTRLEN)) }
+        let ip = String(cString: buf)
+        return (ip.isEmpty || ip == "0.0.0.0") ? nil : ip
+    }
 }
 
 struct LogLine: Identifiable, Equatable {

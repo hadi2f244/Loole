@@ -82,7 +82,7 @@ final class CoreManager {
             }
             return
         }
-        log("[CoreManager] Ready — SOCKS5 on \(host):\(settings.socksPort)\n")
+        log("[CoreManager] Ready. SOCKS5 on \(host):\(settings.socksPort)\n")
         onStatus?(.running)
     }
 

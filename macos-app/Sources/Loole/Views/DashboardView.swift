@@ -2,62 +2,53 @@ import SwiftUI
 
 struct DashboardView: View {
     @EnvironmentObject var app: AppState
-    @State private var isToggling = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Header with Logo
-                HStack(spacing: 16) {
-                    Image("loole")
+
+                // Hero header
+                VStack(spacing: 10) {
+                    Image("Loole", bundle: .module)
                         .resizable()
-                        .frame(width: 52, height: 52)
-                        .cornerRadius(12)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Loole")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                        Text("Secure Data Flow")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    
-                    if app.status.isRunning {
-                        Button {
-                            Task { await app.testConnection() }
-                        } label: {
-                            if app.isTestingLatency {
-                                ProgressView().controlSize(.small)
-                            } else {
-                                Label("Refresh", systemImage: "arrow.clockwise")
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(app.isTestingLatency)
-                        .foregroundStyle(Color.accentColor)
-                    }
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
+                        .cornerRadius(16)
+                    Text("Loole")
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                    Text("Tunnels traffic through Google Drive")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.top, 8)
 
-                // Status Card
+                // Status card
                 statusCard
 
-                // Diagnostics Row (when running)
+                // Diagnostics (while running)
                 if app.status.isRunning {
                     HStack(spacing: 16) {
-                        diagnosticItem(label: "SERVER LOCATION", value: app.serverLocation ?? (app.isTestingLatency ? "Checking..." : "—"), icon: "mappin.and.ellipse")
-                        diagnosticItem(label: "LATENCY", value: latencyDisplay, icon: "timer")
+                        diagnosticItem(
+                            label: "SERVER LOCATION",
+                            value: app.serverLocation ?? (app.isTestingLatency ? "Checking..." : "Unknown"),
+                            icon: "mappin.and.ellipse"
+                        )
+                        diagnosticItem(
+                            label: "LATENCY",
+                            value: latencyDisplay,
+                            icon: "timer"
+                        )
                     }
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // Connect Button
+                // Connect / Disconnect
                 connectButton
-                
-                // Advanced Configuration
+
+                // Config info
                 statsCard
-                
+
                 Spacer(minLength: 40)
             }
             .padding(32)
@@ -66,15 +57,15 @@ struct DashboardView: View {
         .animation(.spring(), value: app.serverLocation)
     }
 
+    // MARK: - Latency display
+
     private var latencyDisplay: String {
         if app.isTestingLatency && app.latency == nil { return "Testing..." }
-        guard let l = app.latency else { return "—" }
-        if l > 1.0 {
-            return String(format: "%.1f s", l)
-        } else {
-            return String(format: "%.0f ms", l * 1000)
-        }
+        guard let l = app.latency else { return "N/A" }
+        return l > 1.0 ? String(format: "%.1f s", l) : String(format: "%.0f ms", l * 1000)
     }
+
+    // MARK: - Sub-views
 
     private func diagnosticItem(label: String, value: String, icon: String) -> some View {
         Card {
@@ -99,29 +90,47 @@ struct DashboardView: View {
         Card {
             HStack(spacing: 20) {
                 StatusDot(color: app.status.isRunning ? .green : .orange, animated: app.status.isRunning)
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text(app.status.label)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
-                    
+
                     if let start = app.startedAt {
                         Text("Active since \(start.formatted(date: .omitted, time: .shortened))")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                     } else if case .error(let msg) = app.status {
-                         Text(msg)
+                        Text(msg)
                             .font(.system(size: 11))
                             .foregroundStyle(.red.opacity(0.8))
                     }
                 }
                 Spacer()
-                
-                Toggle("System Proxy", isOn: Binding(
-                    get: { app.settings.useSystemProxy },
-                    set: { val in Task { await app.setSystemProxy(val) } }
-                ))
-                .toggleStyle(.switch)
-                .font(.system(size: 12, weight: .medium))
+
+                VStack(alignment: .trailing, spacing: 8) {
+                    Toggle("System Proxy", isOn: Binding(
+                        get: { app.settings.useSystemProxy },
+                        set: { val in Task { await app.setSystemProxy(val) } }
+                    ))
+                    .toggleStyle(.switch)
+                    .font(.system(size: 12, weight: .medium))
+
+                    if app.status.isRunning {
+                        Button {
+                            Task { await app.testConnection() }
+                        } label: {
+                            if app.isTestingLatency {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Label("Refresh", systemImage: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(app.isTestingLatency)
+                        .foregroundStyle(Color.accentColor)
+                    }
+                }
             }
         }
     }
@@ -142,10 +151,7 @@ struct DashboardView: View {
                 }
             }
             .frame(width: 200, height: 48)
-            .background(
-                Capsule()
-                    .fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor)
-            )
+            .background(Capsule().fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor))
             .foregroundColor(.white)
         }
         .buttonStyle(.plain)
@@ -154,16 +160,19 @@ struct DashboardView: View {
 
     private var statsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ADVANCED INFO")
+            Text("CONFIGURATION")
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.secondary)
                 .padding(.leading, 4)
-            
+
             Card {
                 VStack(spacing: 12) {
-                    statRow(label: "SOCKS Address", value: app.settings.listenAddr)
-                    statRow(label: "Tunnel Mode", value: "Google Drive (loole-server)")
-                    statRow(label: "Polling Rate", value: "\(app.settings.refreshRateMs)ms")
+                    statRow(label: "SOCKS5 Address", value: app.settings.listenAddr)
+                    statRow(label: "Listen Mode",    value: app.settings.isLAN ? "LAN (shared)" : "Local only")
+                    if app.settings.isLAN, let ip = AppState.getLANIPAddress() {
+                        statRow(label: "LAN IP", value: ip)
+                    }
+                    statRow(label: "Poll / Flush", value: "\(app.settings.refreshRateMs) ms / \(app.settings.flushRateMs) ms")
                 }
             }
         }

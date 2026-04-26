@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 @main
 struct LooleApp: App {
@@ -30,6 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var popover = NSPopover()
     private var eventMonitor: Any?
+    private var statusCancellable: AnyCancellable?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
@@ -37,6 +39,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func setup(_ state: AppState) {
         self.appState = state
+        statusCancellable = state.$status
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.updateMenuBarIcon() }
         refreshPopover()
         updateMenuBarIcon()
     }
@@ -44,12 +49,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupMenuBar() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "dot.radiowaves.left.and.right",
-                                   accessibilityDescription: "Loole")
             button.action = #selector(togglePopover)
             button.target = self
         }
         popover.behavior = .transient
+        updateMenuBarIcon()
         refreshPopover()
     }
 
@@ -71,13 +75,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func updateMenuBarIcon() {
         let running = appState?.status.isRunning ?? false
-        statusItem?.button?.image = NSImage(
-            systemSymbolName: running
-                ? "dot.radiowaves.left.and.right"
-                : "dot.radiowaves.left.and.right",
-            accessibilityDescription: "Loole"
-        )
-        statusItem?.button?.appearsDisabled = !running
+        guard let button = statusItem?.button else { return }
+
+        let img = NSImage(systemSymbolName: "dot.radiowaves.left.and.right",
+                          accessibilityDescription: "Loole")
+        img?.isTemplate = true
+        button.image = img
+        // Tint blue when connected, default (adaptive gray) when idle.
+        button.contentTintColor = running ? .systemBlue : nil
     }
 
     @objc func togglePopover() {
@@ -87,7 +92,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPopover() {
         guard let button = statusItem?.button else { return }
         refreshPopover()
-        updateMenuBarIcon()
         popover.contentSize = NSSize(width: 240, height: 200)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()

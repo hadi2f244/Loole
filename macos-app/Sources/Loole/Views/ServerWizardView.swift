@@ -148,12 +148,24 @@ struct ServerWizardView: View {
                     .font(.system(size: 12, weight: .medium))
 
                 if includeSSH {
-                    HStack(spacing: 10) {
-                        Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
-                        Text("Server IP:").font(.system(size: 12)).foregroundStyle(.secondary)
-                        TextField("e.g. 85.34.12.99", text: $serverIP)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 12, design: .monospaced))
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
+                            Text("Server IP:").font(.system(size: 12)).foregroundStyle(.secondary)
+                            TextField("e.g. 85.34.12.99", text: $serverIP)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(size: 12, design: .monospaced))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .stroke(!serverIP.isEmpty && !serverIPValid ? Color.red.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                                )
+                        }
+                        if !serverIP.isEmpty && !serverIPValid {
+                            Text("Enter a valid IPv4 address (e.g. 85.34.12.99)")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.red)
+                                .padding(.leading, 34)
+                        }
                     }
                     .padding(.bottom, 4)
                 }
@@ -188,6 +200,14 @@ struct ServerWizardView: View {
                 .tint(.accentColor)
             }
         }
+    }
+
+    // MARK: - Validation
+
+    private var serverIPValid: Bool {
+        let parts = serverIP.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return false }
+        return parts.allSatisfy { guard let n = Int($0) else { return false }; return (0...255).contains(n) }
     }
 
     // MARK: - Build

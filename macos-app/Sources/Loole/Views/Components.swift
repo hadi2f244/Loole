@@ -170,7 +170,7 @@ struct WindowAccessor: NSViewRepresentable {
             if let w = v.window {
                 w.titlebarAppearsTransparent = true
                 w.titleVisibility = .hidden
-                w.isMovableByWindowBackground = true
+                w.isMovableByWindowBackground = false
                 w.styleMask.insert(.fullSizeContentView)
             }
         }

@@ -78,7 +78,7 @@ struct WizardView: View {
             VStack(alignment: .leading, spacing: 18) {
                 stepTitle(number: 1, title: "Get your Google credentials")
 
-                Text("Follow these 4 quick steps — each one has a direct link so you never have to hunt through Google's menus.")
+                Text("Follow these 4 quick steps. Each one has a direct link so you never have to hunt through Google's menus.")
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -288,13 +288,13 @@ struct WizardView: View {
                         .foregroundStyle(.secondary)
                     tipRow(
                         icon: "exclamationmark.shield",
-                        text: "**\"Access blocked\"** — your app is still in Testing mode.",
+                        text: "**\"Access blocked\"**: your app is still in Testing mode.",
                         linkLabel: "Click here to Publish App",
                         url: "https://console.cloud.google.com/auth/audience"
                     )
                     tipRow(
                         icon: "exclamationmark.triangle",
-                        text: "**\"App not verified\"** — click **Advanced**, then **Go to app (unsafe)**. This is expected for personal apps.",
+                        text: "**\"App not verified\"**: click **Advanced**, then **Go to app (unsafe)**. This is expected for personal apps.",
                         linkLabel: nil, url: nil
                     )
                 }

@@ -5,7 +5,7 @@ struct ContentView: View {
     @State private var tab: Tab = .dashboard
 
     enum Tab: String, CaseIterable, Identifiable {
-        case dashboard, logs, server, setup
+        case dashboard, logs, server, setup, settings, about
         var id: String { rawValue }
         var title: String {
             switch self {
@@ -13,6 +13,8 @@ struct ContentView: View {
             case .logs:      return "Output"
             case .server:    return "Deploy Server"
             case .setup:     return "Setup"
+            case .settings:  return "Settings"
+            case .about:     return "About"
             }
         }
         var symbol: String {
@@ -21,6 +23,8 @@ struct ContentView: View {
             case .logs:      return "terminal"
             case .server:    return "server.rack"
             case .setup:     return "gearshape.2"
+            case .settings:  return "slider.horizontal.3"
+            case .about:     return "info.circle"
             }
         }
     }
@@ -38,7 +42,7 @@ struct ContentView: View {
         } detail: {
             ZStack {
                 AppBackground()
-                
+
                 if app.isWizardComplete {
                     Group {
                         switch tab {
@@ -46,6 +50,8 @@ struct ContentView: View {
                         case .logs:      LogsView()
                         case .server:    ServerWizardView(onComplete: nil, onBack: nil)
                         case .setup:     WizardView()
+                        case .settings:  SettingsView()
+                        case .about:     AboutView()
                         }
                     }
                     .navigationTitle(tab.title)
@@ -61,9 +67,11 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // App identity
             HStack(spacing: 10) {
-                Image(systemName: "dot.radiowaves.left.and.right")
-                    .font(.system(size: 20))
-                    .foregroundStyle(Color.accentColor)
+                Image("Loole", bundle: .module)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 26, height: 26)
+                    .cornerRadius(6)
                 Text("Loole")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
             }
@@ -86,12 +94,22 @@ struct ContentView: View {
             Divider().opacity(0.2)
                 .padding(.bottom, 8)
 
-            // Nav items
-            ForEach(Tab.allCases) { t in
+            // Primary nav
+            ForEach([Tab.dashboard, .logs, .server, .setup]) { t in
                 sidebarItem(t)
             }
 
             Spacer()
+
+            Divider().opacity(0.2)
+                .padding(.bottom, 8)
+                .padding(.top, 4)
+
+            // Secondary nav
+            ForEach([Tab.settings, .about]) { t in
+                sidebarItem(t)
+            }
+            .padding(.bottom, 12)
         }
         .background(Color(.sRGB, red: 0.05, green: 0.06, blue: 0.10, opacity: 1))
     }
@@ -123,10 +141,10 @@ struct ContentView: View {
 
     private var statusColor: Color {
         switch app.status {
-        case .running:  return .green
-        case .starting, .stopping: return .yellow
-        case .error:    return .orange
-        case .stopped:  return Color.white.opacity(0.25)
+        case .running:              return .green
+        case .starting, .stopping:  return .yellow
+        case .error:                return .orange
+        case .stopped:              return Color.white.opacity(0.25)
         }
     }
 }
