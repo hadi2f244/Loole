@@ -1,4 +1,6 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import AppKit
 
 // MARK: - Card
 
@@ -230,12 +232,12 @@ struct NativeDropZone: NSViewRepresentable {
 
         override init(frame frameRect: NSRect) {
             super.init(frame: frameRect)
-            // Register for multiple types to be as inclusive as possible
+            // Register for a wide range of types to ensure compatibility
             registerForDraggedTypes([
                 .fileURL,
                 .URL,
-                NSPasteboard.PasteboardType("public.file-url"),
-                NSPasteboard.PasteboardType("public.url-name"),
+                NSPasteboard.PasteboardType(UTType.json.identifier),
+                NSPasteboard.PasteboardType(UTType.fileURL.identifier),
                 .string
             ])
         }
@@ -247,10 +249,10 @@ struct NativeDropZone: NSViewRepresentable {
         }
 
         override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
-            // Check if we have anything that can be resolved to a URL
             let pboard = sender.draggingPasteboard
             let canAccept = pboard.canReadObject(forClasses: [NSURL.self], options: nil) ||
-                           pboard.types?.contains(.fileURL) == true
+                           pboard.types?.contains(.fileURL) == true ||
+                           pboard.types?.contains(NSPasteboard.PasteboardType(UTType.fileURL.identifier)) == true
             
             if canAccept {
                 DispatchQueue.main.async { self.isDragging?.wrappedValue = true }
@@ -271,13 +273,14 @@ struct NativeDropZone: NSViewRepresentable {
             DispatchQueue.main.async { self.isDragging?.wrappedValue = false }
             let pboard = sender.draggingPasteboard
             
-            // Try URLs first
-            if let urls = pboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+            // Try modern NSURL reading first with options
+            let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+            if let urls = pboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL], !urls.isEmpty {
                 onURLs?(urls)
                 return true
             }
             
-            // Fallback to fileURL type specifically
+            // Fallback for string paths
             if let path = pboard.string(forType: .fileURL), let url = URL(string: path) {
                 onURLs?([url])
                 return true

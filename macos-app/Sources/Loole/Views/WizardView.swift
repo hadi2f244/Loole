@@ -183,16 +183,9 @@ struct WizardView: View {
         }
     }
 
+    private var dropZone: some View {
         ZStack {
-            // Native handler at the base
-            NativeDropZone(isDragging: $isDraggingOver, onURLs: { urls in
-                if let url = urls.first { importCredentials(from: url) }
-            }, onTap: {
-                if !credentialsImported { browseForCredentials() }
-            })
-            .allowsHitTesting(!credentialsImported)
-            
-            // Visual layer
+            // Visual layer (now at the bottom so it's always visible)
             Group {
                 if credentialsImported {
                     importedStateView
@@ -200,24 +193,39 @@ struct WizardView: View {
                     emptyStateView
                 }
             }
-            .allowsHitTesting(credentialsImported) // Let events pass to handler if empty
+            .animation(.spring(response: 0.3), value: credentialsImported)
+
+            // Native handler on top, only active when not imported
+            if !credentialsImported {
+                NativeDropZone(isDragging: $isDraggingOver, onURLs: { urls in
+                    if let url = urls.first { importCredentials(from: url) }
+                }, onTap: {
+                    browseForCredentials()
+                })
+                .background(Color.white.opacity(0.001)) // Ensure it's hittable
+            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: 90)
-        .animation(.spring(response: 0.3), value: credentialsImported)
         .animation(.easeInOut(duration: 0.2), value: isDraggingOver)
     }
 
     private var importedStateView: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 24))
-                .foregroundStyle(.green)
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.green)
+            }
             
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Credentials Imported")
-                    .font(.system(size: 13, weight: .semibold))
-                Text("Ready to authorize with Google")
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Credentials Ready")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+                Text("oauth_credentials.json successfully verified")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -227,25 +235,34 @@ struct WizardView: View {
             Button {
                 deleteCredentials()
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 6) {
                     Image(systemName: "trash")
-                    Text("Remove")
+                        .font(.system(size: 12))
+                    Text("Replace")
+                        .font(.system(size: 12, weight: .semibold))
                 }
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.red.opacity(0.8))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(.red.opacity(0.1)))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        )
+                )
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.green.opacity(0.06))
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.green.opacity(0.03))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(Color.green.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.green.opacity(0.15), lineWidth: 1)
                 )
         )
     }
