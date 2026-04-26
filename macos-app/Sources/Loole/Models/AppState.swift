@@ -82,6 +82,11 @@ final class AppState: ObservableObject {
             if settings.useSystemProxy {
                 await applySystemProxy(true)
             }
+            // Automatically test connection health after successful connect
+            Task {
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // Give core a second to settle
+                await testConnection()
+            }
         } catch {
             status = .error(error.localizedDescription)
             startedAt = nil
