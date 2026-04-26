@@ -10,11 +10,8 @@
 
 ---
 
-## Why Loole?
 
-Most covert tunnels are difficult to set up, requiring manual configuration of JSON files and terminal commands. **Loole** changes that by providing a fully interactive macOS application that guides you through every step, from generating Google credentials to deploying your server.
-
-### Key Features
+## Key Features
 - **Easy Guided Setup**: A 3-step wizard that handles the complexity of Google Cloud Console for you with direct links and instructions.
 - **Automatic Authorization**: No more copy-pasting URLs from the terminal. Loole handles the OAuth2 handshake directly in your browser.
 - **Connection Health Checker**: Real-time feedback on your connection quality, including **ping latency** and **server location** (GeoIP).
