@@ -58,11 +58,11 @@ struct WizardView: View {
 
     private var header: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 16) {
-                Image("loole")
+                HStack(spacing: 16) {
+                Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
-                    .frame(width: 44, height: 44)
-                    .cornerRadius(10)
+                    .frame(width: 48, height: 48)
+                    .cornerRadius(12)
                 Text("Setup Loole")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
@@ -143,6 +143,7 @@ struct WizardView: View {
                             withAnimation { step = 1 }
                         }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(.accentColor)
                         .controlSize(.large)
                     }
@@ -394,6 +395,7 @@ struct WizardView: View {
                             auth.startAuthorize(credentialsURL: store.credentialsURL)
                         }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(.accentColor)
                         .controlSize(.large)
 
@@ -417,6 +419,7 @@ struct WizardView: View {
                             withAnimation { step = 2 }
                         }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(.accentColor)
                         .controlSize(.large)
                     }

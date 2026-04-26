@@ -119,6 +119,7 @@ struct SettingsView: View {
                     Spacer()
                     Button(saved ? "Saved" : "Save") { saveDraft() }
                         .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(saved ? .green : .accentColor)
                         .disabled(isRunning || !hasChanges)
                 }
@@ -139,6 +140,7 @@ struct SettingsView: View {
                     Spacer()
                     Button("Reset…") { showResetConfirm = true }
                         .buttonStyle(.bordered)
+                        .buttonBorderShape(.roundedRectangle)
                         .tint(.red)
                         .disabled(isRunning)
                 }

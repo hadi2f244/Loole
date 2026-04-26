@@ -151,7 +151,7 @@ struct DashboardView: View {
                 }
             }
             .frame(width: 200, height: 48)
-            .background(Capsule().fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor))
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor))
             .foregroundColor(.white)
         }
         .buttonStyle(.plain)

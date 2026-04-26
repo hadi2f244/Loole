@@ -87,6 +87,7 @@ struct ServerWizardView: View {
                         buildPackage()
                     }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle)
                     .tint(.accentColor)
                     .controlSize(.large)
                     .disabled(detectedArch == nil)
@@ -208,6 +209,7 @@ struct ServerWizardView: View {
                     onComplete?()
                 }
                 .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.roundedRectangle)
                 .tint(.accentColor)
                 .controlSize(.large)
             }
