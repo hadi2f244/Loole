@@ -50,6 +50,15 @@ final class AppState: ObservableObject {
     @Published var serverLocation: String?
     @Published var latency: Double?
     @Published var isTestingLatency = false
+    
+    @Published var uploadSpeed: Double = 0
+    @Published var downloadSpeed: Double = 0
+    @Published var totalTX: UInt64 = 0
+    @Published var totalRX: UInt64 = 0
+
+    private var lastTX: UInt64 = 0
+    private var lastRX: UInt64 = 0
+    private var lastStatsUpdate = Date()
 
     private let store = ConfigStore()
     private let core  = CoreManager()
@@ -64,6 +73,9 @@ final class AppState: ObservableObject {
         }
         core.onStatus = { [weak self] s in
             Task { @MainActor in self?.status = s }
+        }
+        core.onSpeedUpdate = { [weak self] tx, rx in
+            Task { @MainActor in self?.updateSpeed(tx: tx, rx: rx) }
         }
     }
 
@@ -103,6 +115,12 @@ final class AppState: ObservableObject {
         startedAt = nil
         serverLocation = nil
         latency = nil
+        uploadSpeed = 0
+        downloadSpeed = 0
+        totalTX = 0
+        totalRX = 0
+        lastTX = 0
+        lastRX = 0
     }
 
     // MARK: - Diagnostics
@@ -182,6 +200,25 @@ final class AppState: ObservableObject {
         try? FileManager.default.removeItem(at: store.credentialsURL)
         try? FileManager.default.removeItem(at: store.tokenURL)
         isWizardComplete = false
+    }
+
+    private func updateSpeed(tx: UInt64, rx: UInt64) {
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastStatsUpdate)
+        guard elapsed >= 0.5 else { return } // Avoid jitter
+
+        if lastTX > 0 {
+            uploadSpeed = Double(tx - lastTX) / elapsed
+        }
+        if lastRX > 0 {
+            downloadSpeed = Double(rx - lastRX) / elapsed
+        }
+
+        lastTX = tx
+        lastRX = rx
+        totalTX = tx
+        totalRX = rx
+        lastStatsUpdate = now
     }
 
     // MARK: - Logs

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/NullLatency/flow-driver/internal/storage"
@@ -40,6 +41,10 @@ type Engine struct {
 	// Track processed files to avoid duplicates
 	processed   map[string]bool
 	processedMu sync.Mutex
+
+	// Traffic stats
+	bytesTx uint64
+	bytesRx uint64
 }
 
 func NewEngine(backend storage.Backend, isClient bool, clientID string) *Engine {
@@ -157,6 +162,8 @@ func (e *Engine) flushAll(ctx context.Context) {
 			Close:      s.closed,
 			TargetAddr: s.TargetAddr,
 		}
+
+		atomic.AddUint64(&e.bytesTx, uint64(len(payload)))
 
 		s.txSeq++
 		if s.closed {
@@ -339,6 +346,7 @@ func (e *Engine) pollLoop(ctx context.Context) {
 							break
 						}
 						count++
+						atomic.AddUint64(&e.bytesRx, uint64(len(env.Payload)))
 
 						// Process envelope immediately
 						e.closedSessionsMu.Lock()
@@ -448,4 +456,8 @@ func (e *Engine) cleanupLoop(ctx context.Context) {
 			}
 		}
 	}
+}
+
+func (e *Engine) GetStats() (uint64, uint64) {
+	return atomic.LoadUint64(&e.bytesTx), atomic.LoadUint64(&e.bytesRx)
 }

@@ -5,6 +5,7 @@ import Foundation
 final class CoreManager {
     var onLog: ((LogLine) -> Void)?
     var onStatus: ((AppState.Status) -> Void)?
+    var onSpeedUpdate: ((UInt64, UInt64) -> Void)?
 
     private var process: Process?
     private var pipe: Pipe?
@@ -65,7 +66,9 @@ final class CoreManager {
         out.fileHandleForReading.readabilityHandler = { [weak self] h in
             let chunk = h.availableData
             guard !chunk.isEmpty else { return }
-            self?.log(String(data: chunk, encoding: .utf8) ?? "")
+            let text = String(data: chunk, encoding: .utf8) ?? ""
+            self?.log(text)
+            self?.parseStats(text)
         }
 
         try p.run()
@@ -152,5 +155,25 @@ final class CoreManager {
 
     private func log(_ text: String) {
         onLog?(LogLine(stream: .stdout, text: text))
+    }
+
+    private func parseStats(_ text: String) {
+        // Look for STATS|TX:123|RX:456
+        let lines = text.components(separatedBy: .newlines)
+        for line in lines {
+            if line.contains("STATS|TX:") {
+                let parts = line.components(separatedBy: "|")
+                var tx: UInt64 = 0
+                var rx: UInt64 = 0
+                for part in parts {
+                    if part.hasPrefix("TX:") {
+                        tx = UInt64(part.dropFirst(3)) ?? 0
+                    } else if part.hasPrefix("RX:") {
+                        rx = UInt64(part.dropFirst(3)) ?? 0
+                    }
+                }
+                onSpeedUpdate?(tx, rx)
+            }
+        }
     }
 }

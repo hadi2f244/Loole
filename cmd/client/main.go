@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/NullLatency/flow-driver/internal/config"
 	"github.com/NullLatency/flow-driver/internal/httpclient"
@@ -149,6 +150,22 @@ func main() {
 	go func() {
 		if err := server.ListenAndServe("tcp", listenAddr); err != nil {
 			log.Fatalf("SOCKS5 server failed: %v", err)
+		}
+	}()
+
+	// PERIODIC STATS REPORTER
+	go func() {
+		ticker := time.NewTicker(1 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				tx, rx := engine.GetStats()
+				// log.Printf("STATS|TX:%d|RX:%d", tx-lastTx, rx-lastRx) // Current speed
+				log.Printf("STATS|TX:%d|RX:%d", tx, rx) // Cumulative (app will calculate speed)
+			}
 		}
 	}()
 

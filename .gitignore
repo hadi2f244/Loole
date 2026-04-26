@@ -17,10 +17,10 @@ macos-app/bundle/
 bin/
 *.zip
 *.icns
-*.png
 
 # System
 .DS_Store
 temp/
 implementation_plan.md
 CLAUDE.md
+loole.png

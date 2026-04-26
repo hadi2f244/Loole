@@ -43,6 +43,15 @@ struct DashboardView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
+                // Live Speed
+                if app.status.isRunning && app.settings.showSpeed {
+                     HStack(spacing: 16) {
+                        speedItem(label: "DOWNLOAD", value: formatSpeed(app.downloadSpeed), total: formatBytes(app.totalRX), icon: "arrow.down")
+                        speedItem(label: "UPLOAD", value: formatSpeed(app.uploadSpeed), total: formatBytes(app.totalTX), icon: "arrow.up")
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 // Connect / Disconnect
                 connectButton
 
@@ -185,5 +194,54 @@ struct DashboardView: View {
             Spacer()
             Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(.white)
         }
+    }
+
+    private func speedItem(label: String, value: String, total: String, icon: String) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(icon == "arrow.down" ? Color.blue : Color.green)
+                    Text(label)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+                
+                HStack(alignment: .bottom, spacing: 4) {
+                    Text(value.split(separator: " ").first ?? "")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(.white)
+                    Text(value.split(separator: " ").last ?? "")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 2)
+                }
+                
+                Text("\(total) total")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary.opacity(0.7))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func formatSpeed(_ bytesPerSec: Double) -> String {
+        if bytesPerSec < 1024 { return String(format: "%.0f B/s", bytesPerSec) }
+        let kb = bytesPerSec / 1024
+        if kb < 1024 { return String(format: "%.1f KB/s", kb) }
+        let mb = kb / 1024
+        return String(format: "%.1f MB/s", mb)
+    }
+
+    private func formatBytes(_ bytes: UInt64) -> String {
+        let b = Double(bytes)
+        if b < 1024 { return "\(bytes) B" }
+        let kb = b / 1024
+        if kb < 1024 { return String(format: "%.1f KB", kb) }
+        let mb = kb / 1024
+        if mb < 1024 { return String(format: "%.1f MB", mb) }
+        let gb = mb / 1024
+        return String(format: "%.2f GB", gb)
     }
 }

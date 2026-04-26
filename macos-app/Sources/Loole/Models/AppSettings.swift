@@ -10,6 +10,7 @@ struct AppSettings: Equatable {
     var useSystemProxy: Bool = false
     var setupComplete: Bool = false
     var serverSetupComplete: Bool = false
+    var showSpeed: Bool = true
 
     static let `default` = AppSettings()
 
@@ -55,6 +56,7 @@ extension AppSettings: Codable {
         case listenHost, listenPort
         case refreshRateMs, flushRateMs
         case useSystemProxy, setupComplete, serverSetupComplete
+        case showSpeed
         case listenAddr   // legacy — only read during migration
     }
 
@@ -67,6 +69,7 @@ extension AppSettings: Codable {
         useSystemProxy      = (try? c.decode(Bool.self,   forKey: .useSystemProxy)) ?? false
         setupComplete       = (try? c.decode(Bool.self,   forKey: .setupComplete))  ?? false
         serverSetupComplete = (try? c.decode(Bool.self,   forKey: .serverSetupComplete)) ?? false
+        showSpeed           = (try? c.decode(Bool.self,   forKey: .showSpeed)) ?? true
 
         // Prefer new split fields; fall back to old listenAddr string.
         if let host = try? c.decode(String.self, forKey: .listenHost) {
@@ -90,5 +93,6 @@ extension AppSettings: Codable {
         try c.encode(useSystemProxy,      forKey: .useSystemProxy)
         try c.encode(setupComplete,       forKey: .setupComplete)
         try c.encode(serverSetupComplete, forKey: .serverSetupComplete)
+        try c.encode(showSpeed,           forKey: .showSpeed)
     }
 }

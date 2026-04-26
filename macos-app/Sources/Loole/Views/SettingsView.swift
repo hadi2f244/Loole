@@ -109,6 +109,17 @@ struct SettingsView: View {
                         .padding(.top, 4)
                 }
 
+                // MARK: Appearance
+                section("Appearance") {
+                    Toggle("Show Traffic Speed", isOn: $draft.showSpeed)
+                        .toggleStyle(.switch)
+                        .font(.system(size: 12, weight: .medium))
+                    
+                    Text("Display real-time upload/download speeds in the status dashboard and menu bar.")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+
                 // MARK: Save
                 HStack {
                     if isRunning {
@@ -202,6 +213,7 @@ struct SettingsView: View {
         portString  = "\(app.settings.listenPort)"
         pollString  = "\(app.settings.refreshRateMs)"
         flushString = "\(app.settings.flushRateMs)"
+        draft.showSpeed = app.settings.showSpeed
         lanIP       = AppState.getLANIPAddress()
     }
 

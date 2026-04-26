@@ -32,6 +32,17 @@ struct MenuBarView: View {
             .padding(.top, 14)
             .padding(.bottom, 12)
 
+            if app.status.isRunning && app.settings.showSpeed {
+                HStack(spacing: 0) {
+                    menuStatsItem(label: "DL", value: formatSpeed(app.downloadSpeed), icon: "arrow.down")
+                    Divider().frame(height: 16).padding(.horizontal, 8)
+                    menuStatsItem(label: "UL", value: formatSpeed(app.uploadSpeed), icon: "arrow.up")
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+                .transition(.opacity)
+            }
+
             Divider()
 
             // ── Primary action: Connect / Disconnect ───────────────
@@ -139,5 +150,27 @@ struct MenuBarView: View {
         case .error:               return .orange
         case .stopped:             return Color.white.opacity(0.3)
         }
+    }
+
+    private func menuStatsItem(label: String, value: String, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.secondary)
+            Text(label)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundStyle(.white)
+        }
+    }
+
+    private func formatSpeed(_ bytesPerSec: Double) -> String {
+        if bytesPerSec < 1024 { return String(format: "%.0f B/s", bytesPerSec) }
+        let kb = bytesPerSec / 1024
+        if kb < 1024 { return String(format: "%.1f KB/s", kb) }
+        let mb = kb / 1024
+        return String(format: "%.1f MB/s", mb)
     }
 }
