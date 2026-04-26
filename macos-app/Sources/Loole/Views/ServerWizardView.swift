@@ -88,6 +88,7 @@ struct ServerWizardView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.accentColor)
+                    .controlSize(.large)
                     .disabled(detectedArch == nil)
                 }
             }
@@ -208,6 +209,7 @@ struct ServerWizardView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.accentColor)
+                .controlSize(.large)
             }
         }
     }

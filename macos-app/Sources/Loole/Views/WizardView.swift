@@ -139,7 +139,7 @@ struct WizardView: View {
                 if credentialsImported {
                     HStack {
                         Spacer()
-                        Button("Next: Authorize →") {
+                        Button("Next: Authorize") {
                             withAnimation { step = 1 }
                         }
                         .buttonStyle(.borderedProminent)
@@ -183,84 +183,97 @@ struct WizardView: View {
         }
     }
 
-    private var dropZone: some View {
         ZStack {
-            if credentialsImported {
-                // SUCCESS / IMPORTED STATE
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.green.opacity(0.06))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.green.opacity(0.2), lineWidth: 1)
-                    )
-                
-                HStack(spacing: 14) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(.green)
-                    
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Credentials Imported")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("Ready to authorize with Google")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        deleteCredentials()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                            Text("Remove")
-                        }
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.red.opacity(0.8))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(.red.opacity(0.1)))
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16)
-            } else {
-                // EMPTY STATE
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(
-                        isDraggingOver ? Color.accentColor : Color.white.opacity(0.1),
-                        style: StrokeStyle(lineWidth: 2, dash: [6])
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.white.opacity(0.03))
-                    )
-
-                VStack(spacing: 6) {
-                    Image(systemName: "square.and.arrow.down")
-                        .font(.system(size: 22))
-                        .foregroundStyle(isDraggingOver ? Color.accentColor : Color.secondary)
-                    Text("Drop your OAuth JSON here")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                    Text("or click to browse")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.accentColor)
+            // Native handler at the base
+            NativeDropZone(isDragging: $isDraggingOver, onURLs: { urls in
+                if let url = urls.first { importCredentials(from: url) }
+            }, onTap: {
+                if !credentialsImported { browseForCredentials() }
+            })
+            .allowsHitTesting(!credentialsImported)
+            
+            // Visual layer
+            Group {
+                if credentialsImported {
+                    importedStateView
+                } else {
+                    emptyStateView
                 }
             }
+            .allowsHitTesting(credentialsImported) // Let events pass to handler if empty
         }
         .frame(maxWidth: .infinity)
         .frame(height: 90)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if !credentialsImported {
-                browseForCredentials()
-            }
-        }
-        .onDrop(of: [.fileURL, .json, .url], delegate: CredentialsDropDelegate(isDragging: $isDraggingOver, onURL: importCredentials))
         .animation(.spring(response: 0.3), value: credentialsImported)
         .animation(.easeInOut(duration: 0.2), value: isDraggingOver)
+    }
+
+    private var importedStateView: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 24))
+                .foregroundStyle(.green)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Credentials Imported")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Ready to authorize with Google")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            Button {
+                deleteCredentials()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "trash")
+                    Text("Remove")
+                }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.red.opacity(0.8))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(.red.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.green.opacity(0.06))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .strokeBorder(Color.green.opacity(0.2), lineWidth: 1)
+                )
+        )
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "square.and.arrow.down")
+                .font(.system(size: 22))
+                .foregroundStyle(isDraggingOver ? Color.accentColor : Color.secondary)
+            Text("Drop your OAuth JSON here")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+            Text("or click to browse")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.accentColor)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    isDraggingOver ? Color.accentColor : Color.white.opacity(0.1),
+                    style: StrokeStyle(lineWidth: 2, dash: [6])
+                )
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.white.opacity(0.03))
+                )
+        )
     }
 
     private func browseForCredentials() {
@@ -365,6 +378,7 @@ struct WizardView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.accentColor)
+                        .controlSize(.large)
 
                     case .waitingForBrowser, .exchanging, .findingFolder:
                         ProgressView().controlSize(.small)
@@ -380,13 +394,14 @@ struct WizardView: View {
                             .foregroundStyle(.secondary)
 
                     case .done(let folderID):
-                        Button("Next: Server Setup →") {
+                        Button("Next: Server Setup") {
                             app.settings.folderID = folderID
                             app.saveSettings()
                             withAnimation { step = 2 }
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.accentColor)
+                        .controlSize(.large)
                     }
                 }
             }
@@ -458,40 +473,5 @@ struct WizardView: View {
                 }
             }
         }
-    }
-}
-
-struct CredentialsDropDelegate: DropDelegate {
-    @Binding var isDragging: Bool
-    var onURL: (URL) -> Void
-
-    func performDrop(info: DropInfo) -> Bool {
-        isDragging = false
-        let providers = info.itemProviders(for: [.fileURL, .json, .url])
-        guard let provider = providers.first else { return false }
-
-        if provider.canLoadObject(ofClass: URL.self) {
-            _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                if let url = url {
-                    DispatchQueue.main.async {
-                        onURL(url)
-                    }
-                }
-            }
-            return true
-        }
-        return false
-    }
-
-    func dropEntered(info: DropInfo) {
-        isDragging = true
-    }
-
-    func dropExited(info: DropInfo) {
-        isDragging = false
-    }
-
-    func validateDrop(info: DropInfo) -> Bool {
-        return info.hasItemsConforming(to: [.fileURL, .json, .url])
     }
 }

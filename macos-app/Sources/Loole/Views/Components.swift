@@ -199,3 +199,91 @@ struct PrimaryButton: View {
         .disabled(disabled)
     }
 }
+// MARK: - NativeDropZone
+
+struct NativeDropZone: NSViewRepresentable {
+    @Binding var isDragging: Bool
+    var onURLs: ([URL]) -> Void
+    var onTap: (() -> Void)? = nil
+
+    func makeNSView(context: Context) -> NSView {
+        let view = DropNSView()
+        view.onURLs = onURLs
+        view.onTap = onTap
+        view.isDragging = $isDragging
+        // Ensure the view is layer-backed and can receive events
+        view.wantsLayer = true
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let view = nsView as? DropNSView {
+            view.onURLs = onURLs
+            view.onTap = onTap
+        }
+    }
+
+    class DropNSView: NSView {
+        var onURLs: (([URL]) -> Void)?
+        var onTap: (() -> Void)?
+        var isDragging: Binding<Bool>?
+
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            // Register for multiple types to be as inclusive as possible
+            registerForDraggedTypes([
+                .fileURL,
+                .URL,
+                NSPasteboard.PasteboardType("public.file-url"),
+                NSPasteboard.PasteboardType("public.url-name"),
+                .string
+            ])
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        override func mouseDown(with event: NSEvent) {
+            onTap?()
+        }
+
+        override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+            // Check if we have anything that can be resolved to a URL
+            let pboard = sender.draggingPasteboard
+            let canAccept = pboard.canReadObject(forClasses: [NSURL.self], options: nil) ||
+                           pboard.types?.contains(.fileURL) == true
+            
+            if canAccept {
+                DispatchQueue.main.async { self.isDragging?.wrappedValue = true }
+                return .copy
+            }
+            return []
+        }
+
+        override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+            return .copy
+        }
+
+        override func draggingExited(_ sender: NSDraggingInfo?) {
+            DispatchQueue.main.async { self.isDragging?.wrappedValue = false }
+        }
+
+        override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+            DispatchQueue.main.async { self.isDragging?.wrappedValue = false }
+            let pboard = sender.draggingPasteboard
+            
+            // Try URLs first
+            if let urls = pboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL], !urls.isEmpty {
+                onURLs?(urls)
+                return true
+            }
+            
+            // Fallback to fileURL type specifically
+            if let path = pboard.string(forType: .fileURL), let url = URL(string: path) {
+                onURLs?([url])
+                return true
+            }
+            
+            return false
+        }
+    }
+}
