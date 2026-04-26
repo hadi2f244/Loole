@@ -124,7 +124,7 @@ struct WizardView: View {
                 Divider().opacity(0.2)
 
                 // Drop zone
-                Text("Drop the downloaded JSON file here:")
+                Text("Your credentials.json file:")
                     .font(.system(size: 12, weight: .medium))
 
                 dropZone
@@ -133,28 +133,20 @@ struct WizardView: View {
                     Label(err, systemImage: "exclamationmark.triangle.fill")
                         .font(.system(size: 11))
                         .foregroundStyle(.orange)
+                        .padding(.top, -8)
                 }
 
                 if credentialsImported {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Label("Credentials imported", systemImage: "checkmark.circle.fill")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.green)
-                            Button("Remove and try another") {
-                                deleteCredentials()
-                            }
-                            .buttonStyle(.plain)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        }
                         Spacer()
-                        Button("Next →") {
+                        Button("Next: Authorize →") {
                             withAnimation { step = 1 }
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.accentColor)
+                        .controlSize(.large)
                     }
+                    .padding(.top, 8)
                 }
             }
         }
@@ -193,32 +185,82 @@ struct WizardView: View {
 
     private var dropZone: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(
-                    isDraggingOver ? Color.accentColor : Color.white.opacity(0.15),
-                    style: StrokeStyle(lineWidth: 2, dash: [6])
-                )
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.white.opacity(0.03))
-                )
-                .frame(height: 90)
+            if credentialsImported {
+                // SUCCESS / IMPORTED STATE
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.green.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(Color.green.opacity(0.2), lineWidth: 1)
+                    )
+                
+                HStack(spacing: 14) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundStyle(.green)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Credentials Imported")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Ready to authorize with Google")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        deleteCredentials()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                            Text("Remove")
+                        }
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.red.opacity(0.8))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(.red.opacity(0.1)))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+            } else {
+                // EMPTY STATE
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(
+                        isDraggingOver ? Color.accentColor : Color.white.opacity(0.1),
+                        style: StrokeStyle(lineWidth: 2, dash: [6])
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.white.opacity(0.03))
+                    )
 
-            VStack(spacing: 6) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 22))
-                    .foregroundStyle(isDraggingOver ? Color.accentColor : Color.secondary)
-                Text("Drop your OAuth JSON here")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Text("or click to browse")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Color.accentColor)
+                VStack(spacing: 6) {
+                    Image(systemName: "square.and.arrow.down")
+                        .font(.system(size: 22))
+                        .foregroundStyle(isDraggingOver ? Color.accentColor : Color.secondary)
+                    Text("Drop your OAuth JSON here")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Text("or click to browse")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.accentColor)
+                }
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(height: 90)
         .contentShape(Rectangle())
-        .onTapGesture { browseForCredentials() }
-        .onDrop(of: [.item], delegate: CredentialsDropDelegate(isDragging: $isDraggingOver, onURL: importCredentials))
+        .onTapGesture {
+            if !credentialsImported {
+                browseForCredentials()
+            }
+        }
+        .onDrop(of: [.fileURL, .json, .url], delegate: CredentialsDropDelegate(isDragging: $isDraggingOver, onURL: importCredentials))
+        .animation(.spring(response: 0.3), value: credentialsImported)
+        .animation(.easeInOut(duration: 0.2), value: isDraggingOver)
     }
 
     private func browseForCredentials() {
@@ -233,9 +275,11 @@ struct WizardView: View {
 
 
     private func deleteCredentials() {
-        try? store.deleteCredentials()
-        credentialsImported = false
-        credError = nil
+        withAnimation {
+            try? store.deleteCredentials()
+            credentialsImported = false
+            credError = nil
+        }
     }
 
     private func importCredentials(from url: URL) {
@@ -247,14 +291,24 @@ struct WizardView: View {
         guard let data = try? Data(contentsOf: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               (json["installed"] != nil || json["web"] != nil) else {
-            credError = "This doesn't look like a valid Google OAuth credentials file."
+            DispatchQueue.main.async {
+                self.credError = "This doesn't look like a valid Google OAuth credentials file."
+                self.credentialsImported = false
+            }
             return
         }
         do {
             try store.importCredentials(from: url)
-            credentialsImported = true
+            DispatchQueue.main.async {
+                withAnimation {
+                    self.credentialsImported = true
+                }
+            }
         } catch {
-            credError = error.localizedDescription
+            DispatchQueue.main.async {
+                self.credError = error.localizedDescription
+                self.credentialsImported = false
+            }
         }
     }
 
@@ -413,7 +467,7 @@ struct CredentialsDropDelegate: DropDelegate {
 
     func performDrop(info: DropInfo) -> Bool {
         isDragging = false
-        let providers = info.itemProviders(for: [.item])
+        let providers = info.itemProviders(for: [.fileURL, .json, .url])
         guard let provider = providers.first else { return false }
 
         if provider.canLoadObject(ofClass: URL.self) {
@@ -438,6 +492,6 @@ struct CredentialsDropDelegate: DropDelegate {
     }
 
     func validateDrop(info: DropInfo) -> Bool {
-        return info.hasItemsConforming(to: [.item])
+        return info.hasItemsConforming(to: [.fileURL, .json, .url])
     }
 }
