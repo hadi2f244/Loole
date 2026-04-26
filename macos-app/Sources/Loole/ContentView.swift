@@ -67,11 +67,10 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // App identity
             HStack(spacing: 10) {
-                Image("Loole", bundle: .module)
-                    .resizable()
-                    .scaledToFit()
+                Image(systemName: "dot.radiowaves.left.and.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
                     .frame(width: 26, height: 26)
-                    .cornerRadius(6)
                 Text("Loole")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
             }

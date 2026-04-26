@@ -101,16 +101,28 @@ enum ServerPackager {
     }
 
     /// Returns the deployment steps the user needs to run, each as a separate (label, command) pair.
-    static func deploymentCommands(zipURL: URL, serverIP: String, includeSSH: Bool) -> [(label: String, code: String)] {
+    static func deploymentCommands(zipURL: URL, serverIP: String, includeSSH: Bool, serverPassword: String? = nil) -> [(label: String, code: String)] {
         let localPath = zipURL.path
         let target = serverIP.isEmpty ? "YOUR_SERVER_IP" : serverIP
         let user = "root"
         
+        // Base commands
+        let sshCmd: String
+        let scpCmd: String
+        
+        if let pass = serverPassword, !pass.isEmpty {
+            sshCmd = "sshpass -p '\(pass)' ssh"
+            scpCmd = "sshpass -p '\(pass)' scp"
+        } else {
+            sshCmd = "ssh"
+            scpCmd = "scp"
+        }
+
         if !includeSSH {
             return [
                 (
                     label: "1. Upload to Server",
-                    code: "scp \"\(localPath)\" \(user)@\(target):/root/"
+                    code: "\(scpCmd) \"\(localPath)\" \(user)@\(target):/root/"
                 ),
                 (
                     label: "2. Install Unzip & Setup",
@@ -134,23 +146,23 @@ enum ServerPackager {
         return [
             (
                 label: "1. Upload to Server",
-                code: "scp \"\(localPath)\" \(user)@\(target):/root/"
+                code: "\(scpCmd) \"\(localPath)\" \(user)@\(target):/root/"
             ),
             (
                 label: "2. Install Unzip & Setup",
-                code: "ssh \(user)@\(target) 'apt-get update && apt-get install -y unzip && cd /root && unzip -o loole-server.zip && chmod +x server'"
+                code: "\(sshCmd) \(user)@\(target) 'apt-get update && apt-get install -y unzip && cd /root && unzip -o loole-server.zip && chmod +x server'"
             ),
             (
                 label: "3. Run (Background)",
-                code: "ssh \(user)@\(target) 'cd /root && nohup ./server -c server_config.json -gc credentials.json > loole.log 2>&1 &'"
+                code: "\(sshCmd) \(user)@\(target) 'cd /root && nohup ./server -c server_config.json -gc credentials.json > loole.log 2>&1 &'"
             ),
             (
                 label: "4. Show Logs",
-                code: "ssh \(user)@\(target) 'tail -f /root/loole.log'"
+                code: "\(sshCmd) \(user)@\(target) 'tail -f /root/loole.log'"
             ),
             (
                 label: "5. Terminate",
-                code: "ssh \(user)@\(target) 'pkill -f server'"
+                code: "\(sshCmd) \(user)@\(target) 'pkill -f server'"
             )
         ]
     }

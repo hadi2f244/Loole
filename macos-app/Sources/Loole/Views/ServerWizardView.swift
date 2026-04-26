@@ -8,6 +8,7 @@ struct ServerWizardView: View {
     @EnvironmentObject var app: AppState
     @State private var detectedArch: String?
     @State private var serverIP: String = ""
+    @State private var serverPassword: String = ""
     @State private var includeSSH = false
     @State private var zipURL: URL?
     @State private var isBuilding = false
@@ -148,23 +149,32 @@ struct ServerWizardView: View {
                     .font(.system(size: 12, weight: .medium))
 
                 if includeSSH {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 10) {
                             Image(systemName: "network").font(.system(size: 12)).foregroundStyle(.secondary)
+                                .frame(width: 14)
                             Text("Server IP:").font(.system(size: 12)).foregroundStyle(.secondary)
+                                .frame(width: 70, alignment: .leading)
                             TextField("e.g. 85.34.12.99", text: $serverIP)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.system(size: 12, design: .monospaced))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .stroke(!serverIP.isEmpty && !serverIPValid ? Color.red.opacity(0.6) : Color.clear, lineWidth: 1.5)
-                                )
                         }
+                        
                         if !serverIP.isEmpty && !serverIPValid {
-                            Text("Enter a valid IPv4 address (e.g. 85.34.12.99)")
+                            Text("Enter a valid IPv4 address")
                                 .font(.system(size: 10))
                                 .foregroundStyle(.red)
-                                .padding(.leading, 34)
+                                .padding(.leading, 100)
+                        }
+                        
+                        HStack(spacing: 10) {
+                            Image(systemName: "lock").font(.system(size: 12)).foregroundStyle(.secondary)
+                                .frame(width: 14)
+                            Text("Password:").font(.system(size: 12)).foregroundStyle(.secondary)
+                                .frame(width: 70, alignment: .leading)
+                            SecureField("Optional (for sshpass)", text: $serverPassword)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(size: 12, design: .monospaced))
                         }
                     }
                     .padding(.bottom, 4)
@@ -176,7 +186,7 @@ struct ServerWizardView: View {
 
             if let url = zipURL {
                 VStack(spacing: 12) {
-                    ForEach(ServerPackager.deploymentCommands(zipURL: url, serverIP: serverIP, includeSSH: includeSSH), id: \.label) { step in
+                    ForEach(ServerPackager.deploymentCommands(zipURL: url, serverIP: serverIP, includeSSH: includeSSH, serverPassword: serverPassword), id: \.label) { step in
                         CodeBlock(label: step.label, code: step.code)
                     }
                 }

@@ -87,7 +87,7 @@ struct WizardView: View {
                     credStep(
                         letter: "A",
                         title: "Enable the Google Drive API",
-                        detail: "Click the link, then press **ENABLE**.",
+                        detail: "Click the link below. Create a new project (name it whatever you like, e.g. \"Loole\") if prompted, then press **ENABLE**.",
                         linkLabel: "Enable Drive API →",
                         url: "https://console.cloud.google.com/flows/enableapi?apiid=drive.googleapis.com"
                     )

@@ -14,7 +14,7 @@ struct AboutView: View {
 
                 // Header
                 HStack(spacing: 16) {
-                    Image("Loole", bundle: .module)
+                    Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)
@@ -46,11 +46,13 @@ struct AboutView: View {
                                  destination: URL(string: "https://t.me/g3ntrix")!)
                                 .font(.system(size: 13, weight: .medium))
                             Link("Upstream: FlowDriver",
-                                 destination: URL(string: "https://github.com/masterking32/MasterHttpRelayVPN")!)
+                                 destination: URL(string: "https://github.com/NullLatency/FlowDriver")!)
                                 .font(.system(size: 13, weight: .medium))
+                            Spacer(minLength: 0)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     }
+                    .frame(maxHeight: .infinity)
 
                     Card {
                         VStack(alignment: .leading, spacing: 8) {
@@ -63,9 +65,11 @@ struct AboutView: View {
                                       text: "Credentials stored under ~/Library/Application Support/Loole/.")
                             BulletRow(icon: "network",
                                       text: "Traffic tunnelled through a Google Drive folder shared between client and server.")
+                            Spacer(minLength: 0)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     }
+                    .frame(maxHeight: .infinity)
                 }
 
                 // Donations full-width

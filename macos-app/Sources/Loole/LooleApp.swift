@@ -29,7 +29,7 @@ struct LooleApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var appState: AppState?
     var statusItem: NSStatusItem?
-    var popover = NSPopover()
+    private var popover = NSPopover()
     private var eventMonitor: Any?
     private var statusCancellable: AnyCancellable?
 
@@ -38,11 +38,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func setup(_ state: AppState) {
+        guard appState == nil else { return }
         self.appState = state
         statusCancellable = state.$status
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateMenuBarIcon() }
-        refreshPopover()
         updateMenuBarIcon()
     }
 
@@ -53,36 +53,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.target = self
         }
         popover.behavior = .transient
+        popover.animates = true
         updateMenuBarIcon()
-        refreshPopover()
-    }
-
-    private func refreshPopover() {
-        guard let state = appState else { return }
-        let view = MenuBarView(onOpenMain: { [weak self] in
-            self?.closePopover()
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.windows.first?.makeKeyAndOrderFront(nil)
-        })
-        .environmentObject(state)
-
-        if let hc = popover.contentViewController as? NSHostingController<AnyView> {
-            hc.rootView = AnyView(view)
-        } else {
-            popover.contentViewController = NSHostingController(rootView: AnyView(view))
-        }
     }
 
     func updateMenuBarIcon() {
         let running = appState?.status.isRunning ?? false
         guard let button = statusItem?.button else { return }
-
         let img = NSImage(systemSymbolName: "dot.radiowaves.left.and.right",
                           accessibilityDescription: "Loole")
         img?.isTemplate = true
         button.image = img
-        // Tint blue when connected, default (adaptive gray) when idle.
-        button.contentTintColor = running ? .systemBlue : nil
+        button.contentTintColor = nil
+        button.appearsDisabled = !running
     }
 
     @objc func togglePopover() {
@@ -90,11 +73,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showPopover() {
-        guard let button = statusItem?.button else { return }
-        refreshPopover()
-        popover.contentSize = NSSize(width: 240, height: 200)
+        guard let button = statusItem?.button, let state = appState else { return }
+
+        let view = AnyView(
+            MenuBarView(onOpenMain: { [weak self] in
+                self?.closePopover()
+                NSApp.activate(ignoringOtherApps: true)
+                NSApp.windows.first { !($0 is NSPanel) }?.makeKeyAndOrderFront(nil)
+            })
+            .environmentObject(state)
+        )
+
+        if let hc = popover.contentViewController as? NSHostingController<AnyView> {
+            hc.rootView = view
+        } else {
+            let hc = NSHostingController(rootView: view)
+            popover.contentViewController = hc
+        }
+
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
+
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             if self?.popover.isShown == true { self?.closePopover() }
         }

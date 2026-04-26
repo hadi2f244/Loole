@@ -9,7 +9,7 @@ struct DashboardView: View {
 
                 // Hero header
                 VStack(spacing: 10) {
-                    Image("Loole", bundle: .module)
+                    Image(nsImage: NSApp.applicationIconImage)
                         .resizable()
                         .scaledToFit()
                         .frame(width: 72, height: 72)

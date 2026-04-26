@@ -9,6 +9,7 @@ struct SettingsView: View {
     @State private var flushString = "300"
     @State private var lanIP: String? = nil
     @State private var saved = false
+    @State private var showResetConfirm = false
 
     private var isRunning: Bool { app.status.isRunning }
     private var hasChanges: Bool { draft != app.settings }
@@ -123,11 +124,38 @@ struct SettingsView: View {
                 }
                 .padding(.top, 4)
 
+                // MARK: Reset
+                Divider().opacity(0.15).padding(.vertical, 4)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Reset Setup")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.red.opacity(0.85))
+                        Text("Clears credentials and restarts the wizard.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Reset…") { showResetConfirm = true }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        .disabled(isRunning)
+                }
+
                 Spacer(minLength: 20)
             }
             .padding(32)
         }
         .onAppear { loadDraft() }
+        .alert("Reset Setup?", isPresented: $showResetConfirm) {
+            Button("Reset", role: .destructive) {
+                Task { await app.resetWizard() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will delete your credentials and OAuth token, and return to the setup wizard. The tunnel will be stopped if running.")
+        }
     }
 
     // MARK: - Helpers

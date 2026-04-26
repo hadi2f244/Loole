@@ -7,32 +7,34 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Status header
+
+            // ── Header: identity + status ──────────────────────────
             HStack(spacing: 10) {
-                StatusDot(color: statusColor, animated: app.status.isRunning)
-                VStack(alignment: .leading, spacing: 1) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .cornerRadius(8)
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Loole")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(app.status.label)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13, weight: .bold))
+                    HStack(spacing: 5) {
+                        StatusDot(color: statusColor, animated: app.status.isRunning)
+                        Text(app.status.label)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
-                Button {
-                    onOpenMain?()
-                } label: {
-                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 12))
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
 
-            Divider().opacity(0.3)
+            Divider()
 
-            // Connect toggle
+            // ── Primary action: Connect / Disconnect ───────────────
             Button {
                 guard !isToggling else { return }
                 isToggling = true
@@ -42,30 +44,45 @@ struct MenuBarView: View {
                     isToggling = false
                 }
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 0) {
                     if isToggling || app.status.isTransitioning {
-                        ProgressView().controlSize(.mini)
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(maxWidth: .infinity)
                     } else {
-                        Image(systemName: app.status.isRunning ? "stop.circle" : "play.circle")
-                            .font(.system(size: 15))
+                        HStack(spacing: 7) {
+                            Image(systemName: app.status.isRunning ? "stop.circle.fill" : "play.circle.fill")
+                                .font(.system(size: 14, weight: .medium))
+                            Text(app.status.isRunning ? "Disconnect" : "Connect")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    Text(app.status.isRunning ? "Disconnect" : "Connect")
-                        .font(.system(size: 12, weight: .medium))
-                    Spacer()
                 }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
+                .foregroundStyle(app.status.isRunning ? Color.red : Color.accentColor)
+                .frame(height: 40)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(app.status.isRunning
+                              ? Color.red.opacity(0.12)
+                              : Color.accentColor.opacity(0.12))
+                )
             }
             .buttonStyle(.plain)
-            .foregroundStyle(app.status.isRunning ? Color.red : Color.accentColor)
             .disabled(isToggling || app.status.isTransitioning)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
 
-            // System proxy toggle
-            HStack {
-                Label("System proxy", systemImage: "arrow.triangle.2.circlepath")
+            Divider()
+
+            // ── Secondary: System Proxy toggle ─────────────────────
+            HStack(spacing: 10) {
+                Image(systemName: "network")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .frame(width: 16)
+                Text("System Proxy")
+                    .font(.system(size: 12))
                 Spacer()
                 Toggle("", isOn: Binding(
                     get: { app.settings.useSystemProxy },
@@ -76,31 +93,51 @@ struct MenuBarView: View {
                 .controlSize(.mini)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 6)
+            .padding(.vertical, 9)
 
-            Divider().opacity(0.3)
+            Divider()
 
-            Button("Quit Loole") {
-                NSApplication.shared.terminate(nil)
+            // ── Footer: app-level actions ──────────────────────────
+            HStack(spacing: 0) {
+                footerRow(label: "Open App", icon: "macwindow") {
+                    onOpenMain?()
+                }
+                Divider().frame(height: 20)
+                footerRow(label: "Quit", icon: "power", tint: .red) {
+                    NSApplication.shared.terminate(nil)
+                }
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.bottom, 2)
         }
-        .frame(width: 240)
-        .background(.ultraThinMaterial)
+        .frame(width: 260)
         .preferredColorScheme(.dark)
+    }
+
+    private func footerRow(label: String, icon: String, tint: Color = .primary, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Spacer()
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .foregroundStyle(tint == .primary ? .secondary : tint)
+                    .frame(width: 16)
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundStyle(tint)
+                Spacer()
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var statusColor: Color {
         switch app.status {
-        case .running:  return .green
+        case .running:             return .green
         case .starting, .stopping: return .yellow
-        case .error:    return .orange
-        case .stopped:  return Color.white.opacity(0.3)
+        case .error:               return .orange
+        case .stopped:             return Color.white.opacity(0.3)
         }
     }
 }

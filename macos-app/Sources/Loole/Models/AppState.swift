@@ -169,6 +169,16 @@ final class AppState: ObservableObject {
         isWizardComplete = true
     }
 
+    func resetWizard() async {
+        if status.isRunning { await stop() }
+        settings.setupComplete = false
+        settings.folderID = ""
+        store.saveSettings(settings)
+        try? FileManager.default.removeItem(at: store.credentialsURL)
+        try? FileManager.default.removeItem(at: store.tokenURL)
+        isWizardComplete = false
+    }
+
     // MARK: - Logs
 
     func appendLog(_ line: LogLine) {
@@ -181,27 +191,25 @@ final class AppState: ObservableObject {
     // MARK: - Network utilities
 
     static func getLANIPAddress() -> String? {
-        let sock = socket(AF_INET, SOCK_DGRAM, 0)
-        guard sock >= 0 else { return nil }
-        defer { close(sock) }
-        var remote = sockaddr_in()
-        remote.sin_family = sa_family_t(AF_INET)
-        remote.sin_port   = UInt16(80).bigEndian
-        inet_pton(AF_INET, "8.8.8.8", &remote.sin_addr)
-        let len = socklen_t(MemoryLayout<sockaddr_in>.size)
-        let connected = withUnsafePointer(to: &remote) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(sock, $0, len) }
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return nil }
+        defer { freeifaddrs(first) }
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while let iface = ptr {
+            defer { ptr = iface.pointee.ifa_next }
+            let name = String(cString: iface.pointee.ifa_name)
+            // Only physical WiFi/Ethernet (en0, en1, …) — skip loopback, VPN (utun*), bridges, etc.
+            guard name.hasPrefix("en"),
+                  let addr = iface.pointee.ifa_addr,
+                  addr.pointee.sa_family == sa_family_t(AF_INET) else { continue }
+            var buf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+            addr.withMemoryRebound(to: sockaddr_in.self, capacity: 1) {
+                _ = inet_ntop(AF_INET, &$0.pointee.sin_addr, &buf, socklen_t(INET_ADDRSTRLEN))
+            }
+            let ip = String(cString: buf)
+            if !ip.isEmpty && ip != "0.0.0.0" { return ip }
         }
-        guard connected == 0 else { return nil }
-        var local = sockaddr_in()
-        var localLen = len
-        _ = withUnsafeMutablePointer(to: &local) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(sock, $0, &localLen) }
-        }
-        var buf = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
-        _ = withUnsafePointer(to: &local.sin_addr) { inet_ntop(AF_INET, $0, &buf, socklen_t(INET_ADDRSTRLEN)) }
-        let ip = String(cString: buf)
-        return (ip.isEmpty || ip == "0.0.0.0") ? nil : ip
+        return nil
     }
 }
 
