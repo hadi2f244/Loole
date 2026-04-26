@@ -44,7 +44,7 @@ struct DashboardView: View {
                 }
 
                 // Live Speed
-                if app.status.isRunning && app.settings.showSpeed {
+                if app.status.isRunning {
                      HStack(spacing: 16) {
                         speedItem(label: "DOWNLOAD", value: formatSpeed(app.downloadSpeed), total: formatBytes(app.totalRX), icon: "arrow.down")
                         speedItem(label: "UPLOAD", value: formatSpeed(app.uploadSpeed), total: formatBytes(app.totalTX), icon: "arrow.up")
@@ -89,7 +89,7 @@ struct DashboardView: View {
                 }
                 Text(value)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -161,7 +161,7 @@ struct DashboardView: View {
             }
             .frame(width: 200, height: 48)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(app.status.isRunning ? Color.red.opacity(0.8) : Color.accentColor))
-            .foregroundColor(.white)
+            .foregroundColor(.white) // Keep white for prominent button regardless of theme
         }
         .buttonStyle(.plain)
         .disabled(app.status.isTransitioning)
@@ -192,7 +192,7 @@ struct DashboardView: View {
         HStack {
             Text(label).font(.system(size: 11)).foregroundStyle(.secondary)
             Spacer()
-            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(.white)
+            Text(value).font(.system(size: 11, design: .monospaced)).foregroundStyle(.primary)
         }
     }
 
@@ -211,7 +211,7 @@ struct DashboardView: View {
                 HStack(alignment: .bottom, spacing: 4) {
                     Text(value.split(separator: " ").first ?? "")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.primary)
                     Text(value.split(separator: " ").last ?? "")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)

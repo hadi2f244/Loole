@@ -32,7 +32,7 @@ struct MenuBarView: View {
             .padding(.top, 14)
             .padding(.bottom, 12)
 
-            if app.status.isRunning && app.settings.showSpeed {
+            if app.status.isRunning {
                 HStack(spacing: 0) {
                     menuStatsItem(label: "DL", value: formatSpeed(app.downloadSpeed), icon: "arrow.down")
                     Divider().frame(height: 16).padding(.horizontal, 8)
@@ -121,7 +121,7 @@ struct MenuBarView: View {
             .padding(.bottom, 2)
         }
         .frame(width: 260)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(app.settings.theme.colorScheme)
     }
 
     private func footerRow(label: String, icon: String, tint: Color = .primary, action: @escaping () -> Void) -> some View {
@@ -148,7 +148,7 @@ struct MenuBarView: View {
         case .running:             return .green
         case .starting, .stopping: return .yellow
         case .error:               return .orange
-        case .stopped:             return Color.white.opacity(0.3)
+        case .stopped:             return Color.primary.opacity(0.3)
         }
     }
 
@@ -162,7 +162,7 @@ struct MenuBarView: View {
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.system(size: 11, weight: .medium, design: .monospaced))
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
         }
     }
 

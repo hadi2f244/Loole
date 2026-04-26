@@ -2,32 +2,6 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var app: AppState
-    @State private var tab: Tab = .dashboard
-
-    enum Tab: String, CaseIterable, Identifiable {
-        case dashboard, logs, server, setup, settings, about
-        var id: String { rawValue }
-        var title: String {
-            switch self {
-            case .dashboard: return "Status"
-            case .logs:      return "Output"
-            case .server:    return "Deploy Server"
-            case .setup:     return "Setup"
-            case .settings:  return "Settings"
-            case .about:     return "About"
-            }
-        }
-        var symbol: String {
-            switch self {
-            case .dashboard: return "dot.radiowaves.left.and.right"
-            case .logs:      return "terminal"
-            case .server:    return "server.rack"
-            case .setup:     return "gearshape.2"
-            case .settings:  return "slider.horizontal.3"
-            case .about:     return "info.circle"
-            }
-        }
-    }
 
     var body: some View {
         mainUI
@@ -45,7 +19,7 @@ struct ContentView: View {
                     ZStack {
                         AppBackground()
                         Group {
-                            switch tab {
+                            switch app.activeTab {
                             case .dashboard: DashboardView()
                             case .logs:      LogsView()
                             case .server:    ServerWizardView(onComplete: nil, onBack: nil)
@@ -54,7 +28,7 @@ struct ContentView: View {
                             case .about:     AboutView()
                             }
                         }
-                        .navigationTitle(tab.title)
+                        .navigationTitle(app.activeTab.title)
                     }
                 }
             } else {
@@ -68,6 +42,12 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
+        sidebarContent
+    }
+
+    @Environment(\.colorScheme) var colorScheme
+
+    private var sidebarContent: some View {
         VStack(spacing: 0) {
             // App identity
             HStack(spacing: 10) {
@@ -98,7 +78,7 @@ struct ContentView: View {
                 .padding(.bottom, 8)
 
             // Primary nav
-            ForEach([Tab.dashboard, .logs, .server, .setup]) { t in
+            ForEach([AppState.Tab.dashboard, .logs, .server, .setup]) { t in
                 sidebarItem(t)
             }
 
@@ -109,36 +89,36 @@ struct ContentView: View {
                 .padding(.top, 4)
 
             // Secondary nav
-            ForEach([Tab.settings, .about]) { t in
+            ForEach([AppState.Tab.settings, .about]) { t in
                 sidebarItem(t)
             }
             .padding(.bottom, 12)
         }
-        .background(Color(.sRGB, red: 0.05, green: 0.06, blue: 0.10, opacity: 1))
+        .background(colorScheme == .dark ? Color(.sRGB, red: 0.05, green: 0.06, blue: 0.10, opacity: 1) : Color(.sRGB, red: 0.94, green: 0.95, blue: 0.97, opacity: 1))
     }
 
-    private func sidebarItem(_ t: Tab) -> some View {
+    private func sidebarItem(_ t: AppState.Tab) -> some View {
         Button {
-            tab = t
+            app.activeTab = t
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: t.symbol)
                     .font(.system(size: 13))
                     .frame(width: 18)
                 Text(t.title)
-                    .font(.system(size: 13, weight: tab == t ? .semibold : .regular))
+                    .font(.system(size: 13, weight: app.activeTab == t ? .semibold : .regular))
                 Spacer()
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(tab == t ? Color.accentColor.opacity(0.15) : Color.clear)
+                    .fill(app.activeTab == t ? Color.accentColor.opacity(0.15) : Color.clear)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(tab == t ? Color.accentColor : Color.secondary)
+        .foregroundStyle(app.activeTab == t ? Color.accentColor : Color.secondary)
         .padding(.horizontal, 8)
     }
 

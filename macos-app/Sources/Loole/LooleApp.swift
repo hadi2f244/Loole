@@ -9,9 +9,10 @@ struct LooleApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .id(appState.settings.theme)
                 .environmentObject(appState)
                 .frame(minWidth: 800, idealWidth: 880, minHeight: 540, idealHeight: 820)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(appState.settings.theme.colorScheme)
                 .onAppear {
                     delegate.setup(appState)
                 }

@@ -5,6 +5,31 @@ import Darwin
 @MainActor
 final class AppState: ObservableObject {
 
+    enum Tab: String, CaseIterable, Identifiable {
+        case dashboard, logs, server, setup, settings, about
+        var id: String { rawValue }
+        var title: String {
+            switch self {
+            case .dashboard: return "Status"
+            case .logs:      return "Output"
+            case .server:    return "Deploy Server"
+            case .setup:     return "Setup"
+            case .settings:  return "Settings"
+            case .about:     return "About"
+            }
+        }
+        var symbol: String {
+            switch self {
+            case .dashboard: return "dot.radiowaves.left.and.right"
+            case .logs:      return "terminal"
+            case .server:    return "server.rack"
+            case .setup:     return "gearshape.2"
+            case .settings:  return "slider.horizontal.3"
+            case .about:     return "info.circle"
+            }
+        }
+    }
+
     // MARK: - Connection status
 
     enum Status: Equatable {
@@ -55,6 +80,14 @@ final class AppState: ObservableObject {
     @Published var downloadSpeed: Double = 0
     @Published var totalTX: UInt64 = 0
     @Published var totalRX: UInt64 = 0
+    
+    @Published var activeTab: Tab = .dashboard
+    
+    // Drafts for persistent UI state during refreshes
+    @Published var settingsDraft: AppSettings?
+    @Published var draftPort: String = ""
+    @Published var draftPoll: String = ""
+    @Published var draftFlush: String = ""
 
     private var lastTX: UInt64 = 0
     private var lastRX: UInt64 = 0

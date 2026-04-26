@@ -65,7 +65,7 @@ struct WizardView: View {
                     .cornerRadius(12)
                 Text("Setup Loole")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Spacer()
             }
             Text("Let's get your private tunnel running in three steps.")
@@ -225,7 +225,7 @@ struct WizardView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text("Credentials Ready")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.primary)
                 Text("oauth_credentials.json successfully verified")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
@@ -247,10 +247,10 @@ struct WizardView: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.white.opacity(0.06))
+                        .fill(Color.primary.opacity(0.06))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
                         )
                 )
             }
@@ -289,7 +289,7 @@ struct WizardView: View {
                 )
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.white.opacity(0.03))
+                        .fill(isDraggingOver ? Color.accentColor.opacity(0.08) : Color.primary.opacity(0.03))
                 )
         )
     }

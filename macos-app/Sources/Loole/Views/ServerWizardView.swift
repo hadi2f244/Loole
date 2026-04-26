@@ -114,12 +114,12 @@ struct ServerWizardView: View {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(detectedArch == arch
                           ? Color.accentColor.opacity(0.12)
-                          : Color.white.opacity(0.04))
+                          : Color.primary.opacity(0.04))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(detectedArch == arch
                                     ? Color.accentColor
-                                    : Color.white.opacity(0.1), lineWidth: 1.5)
+                                    : Color.primary.opacity(0.1), lineWidth: 1.5)
                     )
             )
         }
@@ -183,7 +183,7 @@ struct ServerWizardView: View {
                 }
             }
             .padding(12)
-            .background(Color.white.opacity(0.04))
+            .background(Color.primary.opacity(0.04))
             .cornerRadius(8)
 
             if let url = zipURL {

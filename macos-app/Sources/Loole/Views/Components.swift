@@ -12,11 +12,11 @@ struct Card<Content: View>: View {
         content
             .padding(20)
             .background(
-                VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                VisualEffectView(material: .sidebar, blendingMode: .withinWindow)
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(.white.opacity(0.12), lineWidth: 0.5)
+                            .stroke(.primary.opacity(0.1), lineWidth: 0.5)
                     )
             )
             .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
@@ -103,7 +103,7 @@ struct CodeBlock: View {
                 CopyButton(text: code)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
-            .background(.white.opacity(0.04))
+            .background(Color.primary.opacity(0.04))
 
             Divider().opacity(0.2)
 
@@ -115,8 +115,8 @@ struct CodeBlock: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.black.opacity(0.4)))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(.white.opacity(0.08), lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.03)))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
@@ -142,19 +142,25 @@ struct StepIndicator: View {
 // MARK: - Background
 
 struct AppBackground: View {
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         ZStack {
-            Color(.sRGB, red: 0.04, green: 0.05, blue: 0.08, opacity: 1)
+            if colorScheme == .dark {
+                Color(.sRGB, red: 0.04, green: 0.05, blue: 0.08, opacity: 1)
+            } else {
+                Color(.sRGB, red: 0.98, green: 0.98, blue: 0.99, opacity: 1)
+            }
             
             // Subtle mesh-like glow
             Circle()
-                .fill(Color.accentColor.opacity(0.12))
+                .fill(Color.accentColor.opacity(colorScheme == .dark ? 0.12 : 0.08))
                 .frame(width: 400, height: 400)
                 .blur(radius: 120)
                 .offset(x: -200, y: -200)
             
             Circle()
-                .fill(Color.purple.opacity(0.1))
+                .fill(colorScheme == .dark ? Color.purple.opacity(0.1) : Color.blue.opacity(0.05))
                 .frame(width: 350, height: 350)
                 .blur(radius: 120)
                 .offset(x: 250, y: 200)

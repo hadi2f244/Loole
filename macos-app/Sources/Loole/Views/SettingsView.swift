@@ -2,17 +2,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var app: AppState
-
-    @State private var draft = AppSettings.default
-    @State private var portString = "1080"
-    @State private var pollString = "200"
-    @State private var flushString = "300"
-    @State private var lanIP: String? = nil
+    
     @State private var saved = false
     @State private var showResetConfirm = false
+    @State private var lanIP: String? = nil
 
     private var isRunning: Bool { app.status.isRunning }
-    private var hasChanges: Bool { draft != app.settings }
+    private var hasChanges: Bool { app.settingsDraft != app.settings }
 
     var body: some View {
         ScrollView {
@@ -26,11 +22,11 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
 
                         HStack(spacing: 0) {
-                            modeButton(label: "Local", selected: draft.listenHost == "127.0.0.1") {
-                                draft.listenHost = "127.0.0.1"
+                            modeButton(label: "Local", selected: app.settingsDraft?.listenHost == "127.0.0.1") {
+                                app.settingsDraft?.listenHost = "127.0.0.1"
                             }
-                            modeButton(label: "LAN", selected: draft.listenHost == "0.0.0.0") {
-                                draft.listenHost = "0.0.0.0"
+                            modeButton(label: "LAN", selected: app.settingsDraft?.listenHost == "0.0.0.0") {
+                                app.settingsDraft?.listenHost = "0.0.0.0"
                                 if lanIP == nil { lanIP = AppState.getLANIPAddress() }
                             }
                         }
@@ -39,7 +35,7 @@ struct SettingsView: View {
                         .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(Color.white.opacity(0.1), lineWidth: 1))
 
-                        if draft.listenHost == "0.0.0.0" {
+                        if app.settingsDraft?.listenHost == "0.0.0.0" {
                             HStack(spacing: 6) {
                                 Image(systemName: "wifi")
                                     .font(.system(size: 11))
@@ -49,7 +45,7 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary)
                                 Text(lanIP ?? "N/A")
                                     .font(.system(size: 11, design: .monospaced))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(.primary)
                             }
                             Text("Other devices on your network can use this address as their SOCKS5 proxy.")
                                 .font(.system(size: 11))
@@ -64,61 +60,86 @@ struct SettingsView: View {
                     Divider().opacity(0.15).padding(.vertical, 4)
 
                     settingRow(label: "SOCKS5 Port") {
-                        TextField("1080", text: $portString)
+                        TextField("1080", text: $app.draftPort)
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 90)
                             .font(.system(size: 12, design: .monospaced))
-                            .onChange(of: portString) { v in
-                                if let n = Int(v), (1...65535).contains(n) { draft.listenPort = n }
+                            .onChange(of: app.draftPort) { v in
+                                if let n = Int(v), (1...65535).contains(n) { app.settingsDraft?.listenPort = n }
                             }
                     }
                 }
 
-                // MARK: Timing
-                section("Timing") {
-                    settingRow(label: "Poll Rate") {
-                        HStack(spacing: 6) {
-                            TextField("200", text: $pollString)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 80)
-                                .font(.system(size: 12, design: .monospaced))
-                                .onChange(of: pollString) { v in
-                                    if let n = Int(v), n > 0 { draft.refreshRateMs = n }
+                // MARK: Timing & Appearance
+                HStack(alignment: .top, spacing: 20) {
+                    section("Timing") {
+                        VStack(alignment: .leading, spacing: 14) {
+                            settingRow(label: "Poll Rate") {
+                                HStack(spacing: 6) {
+                                    TextField("200", text: $app.draftPoll)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 60)
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .onChange(of: app.draftPoll) { v in
+                                            if let n = Int(v), n > 0 { app.settingsDraft?.refreshRateMs = n }
+                                        }
+                                    Text("ms").font(.system(size: 11)).foregroundStyle(.secondary)
                                 }
-                            Text("ms").font(.system(size: 11)).foregroundStyle(.secondary)
-                        }
-                    }
+                            }
 
-                    settingRow(label: "Flush Rate") {
-                        HStack(spacing: 6) {
-                            TextField("300", text: $flushString)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 80)
-                                .font(.system(size: 12, design: .monospaced))
-                                .onChange(of: flushString) { v in
-                                    if let n = Int(v), n > 0 { draft.flushRateMs = n }
+                            settingRow(label: "Flush Rate") {
+                                HStack(spacing: 6) {
+                                    TextField("300", text: $app.draftFlush)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(width: 60)
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .onChange(of: app.draftFlush) { v in
+                                            if let n = Int(v), n > 0 { app.settingsDraft?.flushRateMs = n }
+                                        }
+                                    Text("ms").font(.system(size: 11)).foregroundStyle(.secondary)
                                 }
-                            Text("ms").font(.system(size: 11)).foregroundStyle(.secondary)
+                            }
+
+                            Text("Lower rates reduce latency but increase API calls.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
+                        .frame(maxHeight: .infinity, alignment: .top)
                     }
+                    .frame(maxWidth: .infinity)
 
-                    Text("Lower poll/flush rates reduce latency but increase Drive API calls. Defaults (200/300 ms) work well for most setups.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 4)
+                    section("Appearance") {
+                        VStack(alignment: .leading, spacing: 14) {
+                            settingRow(label: "Theme") {
+                                Picker("", selection: Binding(
+                                    get: { app.settingsDraft?.theme ?? .system },
+                                    set: { app.settingsDraft?.theme = $0 }
+                                )) {
+                                    Text("System").tag(AppTheme.system)
+                                    Text("Light").tag(AppTheme.light)
+                                    Text("Dark").tag(AppTheme.dark)
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 150)
+                                .labelsHidden()
+                                .onChange(of: app.settingsDraft?.theme) { newTheme in
+                                    if let t = newTheme {
+                                        app.settings.theme = t
+                                        app.saveSettings()
+                                    }
+                                }
+                            }
+                            
+                            Text("The application theme adjusts immediately.")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxHeight: .infinity, alignment: .top)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-
-                // MARK: Appearance
-                section("Appearance") {
-                    Toggle("Show Traffic Speed", isOn: $draft.showSpeed)
-                        .toggleStyle(.switch)
-                        .font(.system(size: 12, weight: .medium))
-                    
-                    Text("Display real-time upload/download speeds in the status dashboard and menu bar.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
+                .fixedSize(horizontal: false, vertical: true)
 
                 // MARK: Save
                 HStack {
@@ -209,16 +230,18 @@ struct SettingsView: View {
     }
 
     private func loadDraft() {
-        draft       = app.settings
-        portString  = "\(app.settings.listenPort)"
-        pollString  = "\(app.settings.refreshRateMs)"
-        flushString = "\(app.settings.flushRateMs)"
-        draft.showSpeed = app.settings.showSpeed
-        lanIP       = AppState.getLANIPAddress()
+        if app.settingsDraft == nil {
+            app.settingsDraft = app.settings
+            app.draftPort = "\(app.settings.listenPort)"
+            app.draftPoll = "\(app.settings.refreshRateMs)"
+            app.draftFlush = "\(app.settings.flushRateMs)"
+        }
+        lanIP = AppState.getLANIPAddress()
     }
 
     private func saveDraft() {
-        app.settings = draft
+        guard let d = app.settingsDraft else { return }
+        app.settings = d
         app.saveSettings()
         withAnimation { saved = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
