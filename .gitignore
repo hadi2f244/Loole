@@ -9,6 +9,7 @@ credentials.json
 server_config.json
 client_config.json
 loole.log
+*/config.json
 
 # Build Artifacts
 macos-app/.build/
